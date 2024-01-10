@@ -19,7 +19,7 @@ cpi <- fredr(
 # Create a function to convert median household income from ACS to most recent 
 # inflation-adjusted dollar value.
 adjustment <- function(x) {
-  transform(x, adjusted = ((270.97142/index)*estimate))
+  transform(x, adjusted = ((292.61250/index)*estimate)) #2022 value is 292.61250
 }
 
 # Create object for years.
@@ -94,26 +94,26 @@ output_b19049_locality <- map_dfr(years, function(yr) {
   acs_rearranged
 })
 
-output_b19049_state <- output_b19049_state |> 
+state_adj <- output_b19049_state |> 
   left_join(cpi, by = "year") |> 
   adjustment() |> 
   select(state, year, age, moe, estimate, adjusted) |> 
   filter(age != "All")
 
 
-output_b19049_cbsa <- output_b19049_cbsa |> 
+cbsa_adj <- output_b19049_cbsa |> 
   left_join(cpi, by = "year") |> 
   adjustment() |> 
   select(cbsa, year, age, moe, estimate, adjusted) |> 
   filter(age != "All")
 
-output_b19049_locality <- output_b19049_locality|> 
+locality_adj <- output_b19049_locality|> 
   left_join(cpi, by = "year") |> 
   adjustment() |> 
   select(locality, year, age, moe, estimate, adjusted) |> 
   mutate(across(.fns = ~str_remove_all(.x, ", Virginia"))) |> 
   filter(age != "All")
 
-write_rds(output_b19049_state, "shiny/med_inc_age/b19049_state.rds")
-write_rds(output_b19049_cbsa, "shiny/med_inc_age/b19049_cbsa.rds")
-write_rds(output_b19049_locality, "shiny/med_inc_age/b19049_locality.rds")
+write_rds(state_adj, "shiny/med_inc_age/b19049_state.rds")
+write_rds(cbsa_adj, "shiny/med_inc_age/b19049_cbsa.rds")
+write_rds(locality_adj, "shiny/med_inc_age/b19049_locality.rds")
