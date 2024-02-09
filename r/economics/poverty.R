@@ -9,7 +9,7 @@ years <- 2010:2022
 
 b17001 <- paste0("B17001", LETTERS[2:9]) # Need to append letters B-I
 
-# Create a function to createa a race and ethnicity category.
+# Create a function to create a a race and ethnicity category.
 
 concept_to_race <- function(x) {
   out <- x %>%
@@ -43,7 +43,7 @@ output_b17001 <- map_dfr(b17001, function(tb){
     
     acs_rearranged <- acs_pull %>%
       mutate(year = yr) %>%
-      select(variable, year, locality = NAME, fips = GEOID, race, poverty, age,
+      select(variable, year, locality = NAME, fips = GEOID, race, sex, poverty, age,
              estimate, moe)
     
     acs_rearranged
@@ -76,9 +76,33 @@ output_b17001_clean <- output_b17001 %>%
     TRUE ~ age
   )) |> 
   mutate(estimate = as.numeric(estimate)) |> 
-  group_by(year,locality, fips, race, poverty, age) |> 
-  summarise(estimate = sum(estimate))
+  filter(poverty != "All") |> 
+  filter(sex != "All") |> 
+  filter(age != "All") |> 
+  group_by(year, locality, fips, race) |> 
+  mutate(totalrace = sum(estimate)) |> 
+  group_by(year, locality, fips, age) |> 
+  mutate(totalage = sum(estimate)) 
+
+
+rate_race <- output_b17001_clean |> 
+  filter(poverty == "Income in the past 12 months below poverty level") |> 
+  group_by(year, locality, fips, race, totalrace) |> 
+  summarise(estimate = sum(estimate)) |> 
+  ungroup() |> 
+  mutate(rate = estimate/totalrace)
+
+
+rate_age <- output_b17001_clean  |> 
+  filter(poverty == "Income in the past 12 months below poverty level") |> 
+  group_by(year, locality, fips, age, totalage) |> 
+  summarise(estimate = sum(estimate)) |> 
+  ungroup() |> 
+  mutate(rate = estimate/totalage)
+
+
   
 
-# Write all data to csv.
-write_rds(output_b17001, "data/b17001.csv")
+# Write all data to rds.
+write_rds(rate_race, "data/poverty_race.rds")
+write_rds(rate_age, "data/poverty_age.rds")
