@@ -52,7 +52,7 @@ col_spec <- cols_only(
 # HMDA data are available via API in two forms: 1) an aggregated JSON API, and 2) a bulk API
 # that returns the raw data in CSV format.  We're more interested in the raw data here in CSV
 #  format which we could use to do custom aggregations, so we'll pull that down for 2018 through
-# 2024.  
+# 2022.  
 #
 #  A few notes about the process below:
 # - We use `map_dfr()` to iterate through the three years then return the result 
