@@ -3,6 +3,8 @@
 # Census Population Estimates Program and the Decennial
 # Census.
 
+# Load necessary libraries.
+
 library(shiny)
 library(tidyverse)
 library(ggplot2)
@@ -14,20 +16,26 @@ library(scales)
 library(rsconnect)
 library(bslib)
 
-
+# Load in data that has already been cleaned in R script.
 total_pop <- readRDS("total_pop.rds")
 
+# Create a list of all unique CBSAs and localities in Virginia based on the data.
 cbsa_list <- sort(unique(total_pop$cbsa_title))
 locality_list <- sort(unique(total_pop$name_long))
 
+# Aggregate data to the CBSA-level for faster processing.
 cbsa_pop <- total_pop |> 
   group_by(year, cbsa_title, counttype) |> 
   summarise(value = sum(value))
 
+# Aggregate data to the state-lvel for faster processing.
 state_pop <- total_pop |> 
   group_by(year, counttype) |> 
   summarise(value = sum(value))
 
+# The server in a Shiny app is the "back-end." It is all the work that is being
+# done behind the scenes to create the reactive visualization. This is done 
+# based on input from a user that then leads to an output.
 
 server <- function(input, output) {
   
@@ -121,6 +129,9 @@ server <- function(input, output) {
   })
 }
 
+# The user interface (ui) is the front-facing side of the visualization. It includes 
+# the input options, the output, and any other stylization for the visualization.
+# 
   ui <- fluidPage(
     tags$head(
     tags$link(rel = "stylesheet", href = "https://fonts.googleapis.com/css?family=FontName", type = "text/css"),
