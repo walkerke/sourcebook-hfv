@@ -70,7 +70,11 @@ full_set_longer <- full_set %>%
     category == "sheltered_total_homeless" ~ "Total Sheltered Homeless",
     category == "unsheltered_homeless" ~ "Total Unsheltered Homeless",
     category == "overall_homeless_individuals" ~ "Overall Homeless Individuals",
-    category == "overall_homeless_family_households" ~ "Overall Homeless Family Households"
+    category == "overall_homeless_family_households" ~ "Overall Homeless Family Households",
+    category == "sheltered_total_homeless_family_households" ~ "Overall Sheltered Homeless Family Households",
+    category == "unsheltered_homeless_family_households" ~ "Overall Unsheltered Homeless Family Households",
+    category == "overall_chronically_homeless_individuals" ~ "Overall Chronically Homeless Individuals", 
+    category == "sheltered_total_chronically_homeless_individuals" ~ "Total Sheltered Chronically Homeless Individuals"
   ))
 
 
