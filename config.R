@@ -17,4 +17,13 @@ latest_pep <- 2024
 
 lag_pep <- 2023
 
+# Set years for BLS pull:
+
+bls_years <- 2015:2023
+bls_years_abbrev <- 20:24
+bls_latest <- 2024
+
+# Set years for CHAS pull:
+
+chas_years <- 2016:2021
 
