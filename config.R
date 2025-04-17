@@ -4,10 +4,13 @@
 
 current_acs <- 2023
 years_abbrev <- 2015:2023 # Certain tables only go so far back.
-years <- c(2010, 2023)
-
+years <- 2010:2023
 years_partial_1 <- 2010:2014
 years_partial_2 <- 2015:2023
+comp_years <- c(2010, 2023)
+
+
+source("r/acs.R")
 
 ## ---- The following sets the latest PEP year: ----
 

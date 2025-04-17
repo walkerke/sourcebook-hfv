@@ -6,7 +6,8 @@ library(scales)
 library(ggtext)
 library(air)
 
-# 1) Bar chart showing a value across several years
+# 1) Bar chart showing a single value across several years.
+
 hfv_year_bar_chart <- function(data, 
                                x_col, 
                                y_col, 
@@ -21,27 +22,24 @@ hfv_year_bar_chart <- function(data,
   
   ggplot(data, aes(x = .data[[x_col]], y = .data[[y_col]])) +
     geom_col(fill = color) +
-    theme_minimal() +
     labs(
       title = title,
       subtitle = subtitle
     ) + 
-    theme_hfv() +
-    theme(
-      panel.grid.minor = element_blank(),
-      text = element_text(size = 12)
-    )
+    theme_hfv()
 }
 
 
-# 2) Bar chart ordered by value
+# 2) Bar chart ordered by value showing values between different categories.
+# The order of categories is ascending based on the value.
+
 hfv_ordered_bar_chart <- function(data, 
                                   x_col, 
                                   y_col, 
                                   title = "Values by Category",
                                   subtitle = "subtitle", 
                                   color_strategy = "single", # "single", "multiple", or "gradient"
-                                  base_color = "#4e79a7",
+                                  base_color = "#334a66",
                                   highlight_categories = NULL) {
   
   # Reorder the x variable based on y values
@@ -101,7 +99,9 @@ lighten <- function(color, factor = 0.5) {
   return(rgb(rgb[1], rgb[2], rgb[3]))
 }
 
-# 3) Line graph showing a value across time from two different factors
+# 3) Line graph showing a value across time from two different factors. 
+
+
 hfv_comparison_line_graph <- function(data, 
                                       x_col, 
                                       y_col, 
@@ -113,11 +113,12 @@ hfv_comparison_line_graph <- function(data,
                    y = .data[[y_col]], 
                    color = .data[[group_col]], 
                    group = .data[[group_col]])) +
-    geom_line(size = 1) +
+    geom_line(linewidth = 1) +
     geom_point(size = 3) +
+    theme_hfv() +
     labs(
       title = title,
-      color = "Group"
+      subtitle = subtitle
     ) +
     theme(
       panel.grid.minor = element_blank(),
@@ -148,7 +149,7 @@ create_grouped_bar_chart <- function(data,
   ggplot(data, aes(x = ordered_x, 
                    y = .data[[y_col]], 
                    fill = .data[[group_col]])) +
-    geom_bar(stat = "identity", position = "dodge") +
+    geom_col(position = "dodge") +
     theme_minimal() +
     labs(
       title = title,
@@ -245,9 +246,8 @@ comparison_chart <- hfv_comparison_line_graph(
   y_col = "cost",
   group_col = "housing_type",
   title = "Housing Costs in Virginia (2015-2024)",
-  subtitle = "subtitle"
-) + 
-  theme_hfv()
+  subtitle = "**subtitle** text"
+) 
 
 print(comparison_chart)
 

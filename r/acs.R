@@ -2,12 +2,15 @@ library(tidycensus)
 library(tidyverse)
 library(fredr)
 library(lubridate)
-source("config.R")
 
 
 # ---- Table B25009: Tenure by Household Size ----
 
 # Get B25009 data for every locality in Virginia
+
+b25009_vars <- load_variables(current_acs, "acs5") %>% 
+  filter(str_detect(name, "B25009"))
+
 
 b25009_raw <- map_dfr(years, function(yr) {
   b25009_pull <- get_acs(
@@ -153,7 +156,7 @@ b11012_vars <- load_variables(current_acs, "acs5") %>%
 
 # Get B11012 data for every locality in Virginia
 
-b11012_raw <- map_dfr(years, function(yr){
+b11012_raw <- map_dfr(comp_years, function(yr){
   b11012_pull <- get_acs(
     geography = "county",
     state = "VA",
@@ -222,7 +225,7 @@ b09021_vars <- load_variables(current_acs, "acs5") %>%
 
 
 
-b09021_raw <- map_dfr(years_abrev, function(yr){
+b09021_raw <- map_dfr(years_abbrev, function(yr){
   b09021_pull <- get_acs(
     geography = "county",
     state = "VA",
@@ -837,7 +840,7 @@ b25064 <- "B25064" # Median Gross Rent
 
 # Get variables from tables.
 
-b25063_defns_2021 <- load_variables(2021, "acs5") %>%
+b25063_defns <- load_variables(2021, "acs5") %>%
   filter(str_sub(name, end = 6) == b25063) %>%
   filter(str_detect(name, "PR") == FALSE)
 
@@ -857,7 +860,7 @@ b25063_cleaned_2014 <- b25063_defns_2014 %>%
   mutate(across(.fns = ~replace_na(.x, "All")),
          across(.fns = ~str_remove_all(.x, ":")))
 
-b25063_cleaned_2022 <- b25063_defns_2021 %>%
+b25063_cleaned <- b25063_defns %>%
   separate(label, into = c("est", "total", "cash", "rent"), sep = "!!") %>%
   select(variable = name, cash, rent) %>%
   mutate(across(.fns = ~replace_na(.x, "All")),
@@ -893,14 +896,14 @@ output_b25063_2014 <- map_dfr(years_partial_1, function(yr){
   acs_rearranged
 })
 
-output_b25063_2022 <- map_dfr(years_partial_2, function(yr){
+output_b25063<- map_dfr(years_partial_2, function(yr){
   acs_pull <- get_acs(
     geography = "county",
     table = b25063,
     year = yr,
     state = "VA"
   ) %>%
-    left_join(b25063_cleaned_2022, by = "variable")
+    left_join(b25063_cleaned, by = "variable")
   
   acs_rearranged <- acs_pull %>%
     mutate(year = yr) %>%
@@ -927,7 +930,7 @@ output_b25064_locality <- map_dfr(years, function(yr){
   acs_rearranged
 })
 
-output_b25064_cbsa <- map_dfr(years_full, function(yr){
+output_b25064_cbsa <- map_dfr(years, function(yr){
   acs_pull <- get_acs(
     geography = "cbsa",
     table = b25064,
@@ -944,7 +947,7 @@ output_b25064_cbsa <- map_dfr(years_full, function(yr){
   acs_rearranged
 })
 
-output_b25064_state <- map_dfr(years_full, function(yr){
+output_b25064_state <- map_dfr(years, function(yr){
   acs_pull <- get_acs(
     geography = "state",
     table = b25064,
@@ -960,9 +963,9 @@ output_b25064_state <- map_dfr(years_full, function(yr){
   acs_rearranged
 })
 
-output_b25063 <- rbind(output_b25063_2014, output_b25063_2021)
+output_b25063_combined <- rbind(output_b25063_2014, output_b25063)
 
-output_b25063_clean <- output_b25063 |> 
+output_b25063_clean <- output_b25063_combined |> 
   filter(cash != "All") |> 
   mutate(rent = case_when(
     cash == "No cash rent" ~ "No cash rent",
@@ -996,7 +999,7 @@ output_b25063_clean <- output_b25063 |>
 #  Consumer Price Index for All Urban Consumers: Rent of Primary Residence 
 # in U.S. City Average (CUSR0000SEHA)
 
-cpi <- fredr(
+cpi_rent <- fredr(
   series_id = "CUSR0000SEHA" # ID for CPI for All Urban Consumers: Rent of Primary Residence
 ) |> 
   select(date, value) |> # Select date and CPI
@@ -1004,17 +1007,17 @@ cpi <- fredr(
          value = as.numeric(value), # Convert CPI to a numeric value.
          year = year(date)) |> # Create a field for the year and extract year from date.
   group_by(year) |> # Group by year. 
-  summarise(index = mean(value)) # Calculate annual average CPI. 
+  summarise(cpi = mean(value)) # Calculate annual average CPI. 
 
-current_index <- cpi |> 
+current_index <- cpi_rent |> 
   filter(year == current_acs) |> 
-  pull(index)
+  pull(cpi)
 
 # Create a function to convert median household income from ACS to most recent 
 # inflation-adjusted dollar value.
 
-adjustment <- function(x) {
-  transform(x, adjusted = ((current_index/index)*estimate))
+adjustment <- function(estimates, cpi_values) {
+  ((current_index/cpi_values)*estimates)
 }
 
 
@@ -1036,24 +1039,19 @@ adjustment <- function(x) {
 #   mutate(year = as.integer(substring(year, 1,4)))
 
 # Join B25064 tables to the Annual CPI table based on year and then create a 
-# column for 2020 dollar value (dollars20) that utilizes the formula above.
 
-# The average annual CPI for 2022 is 370.2016
 
 b25064_locality <- output_b25064_locality %>%
   left_join(cpi_rent, by = 'year') %>%
-  rename(cpi = index) %>%
-  mutate(adjusted = adjustment(estimate))
+  mutate(adjusted = adjustment(estimate, cpi))
 
 b25064_cbsa <- output_b25064_cbsa %>%
   left_join(cpi_rent, by = 'year') %>%
-  rename(cpi = index) %>%
-  mutate(adjusted = adjustment(estimate))
+  mutate(adjusted = adjustment(estimate, cpi))
 
 b25064_state <- output_b25064_state %>%
   left_join(cpi_rent, by = 'year') %>%
-  rename(cpi = index) %>%
-  mutate(adjusted = adjustment(estimate))
+  mutate(adjusted = adjustment(estimate, cpi))
 
 
 # Data export
