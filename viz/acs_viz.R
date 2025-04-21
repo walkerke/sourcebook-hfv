@@ -1418,5 +1418,356 @@ ggplot(state,
     theme(legend.position = "none",
           strip.text = element_blank())
   
-    
-    
+  # Create shiny apps for the above three plots where each visualization is its own tab. The filter should
+  # allow users to change between different years for each plot. 
+  
+  ## ---- Housing Type by Tenure and Year Built ----- ##
+  
+  b25127 <- read_rds("data/b25127.rds")
+  
+  # Define the desired order for structure types
+  structure_order <- c("1, detached or attached", 
+                       "2 to 4", 
+                       "5 to 19", 
+                       "20 to 49", 
+                       "50 or more", 
+                       "Mobile home, boat, RV, van, etc.") 
+  
+  state_housing_built <- b25127 |> 
+    group_by(year, tenure, yrbuilt, structure) |> 
+    summarise(estimate = sum(estimate)) |> 
+    ungroup() |> 
+    mutate(structure = factor(structure, levels = structure_order))
+  
+  cbsa_housing_built <-  b25127 |> 
+    group_by(year, cbsa_title, tenure, yrbuilt, structure) |> 
+    summarise(estimate = sum(estimate))  |> 
+    ungroup() |> 
+    mutate(structure = factor(structure, levels = structure_order))
+  
+  local_housing_built <-  b25127  |> 
+    mutate(structure = factor(structure, levels = structure_order))
+  
+  # Define a color palette using the HousingX colors
+  housing_palette <- c(
+    "1, detached or attached" = "#011E41",  # Shadow - dark blue for largest category
+    "2 to 4" = "#259591",                   # Grass - teal
+    "5 to 19" = "#8B85CA",                  # Lilac
+    "20 to 49" = "#B1005F",                 # Berry
+    "50 or more" = "#E0592A",               # Desert - orange
+    "Mobile home, boat, RV, van, etc." = "#FFC658"  # Orange HousingX - gold
+  )
+  
+  # Create filter placeholders.
+  
+  state <- state_housing_built |> 
+    filter(year == 2023)
+  
+  cbsa <- cbsa_housing_built |> 
+    filter(year == 2023, 
+           cbsa_title == "Richmond, VA")
+  
+  local <- local_housing_built |>
+    filter(year == 2023, 
+           name_long == "Richmond City")
+  
+  
+  
+  # Create visualizations showing the distribution of housing type and tenure by
+  # structure type.
+  
+
+  ggplot(state,
+         aes(x = yrbuilt,
+             y = estimate,
+             fill = structure)) +
+    geom_col(position = "stack") +
+    facet_wrap(~tenure) +
+    coord_flip() +
+    scale_y_continuous(labels = scales::number_format(big.mark = ",")) +
+    labs(title = "Distribution of housing stock by year built and tenure") +
+    theme_minimal() +
+    scale_fill_manual(values = housing_palette) +
+    theme(legend.title = element_blank(),
+          axis.title = element_blank(),
+          plot.title.position = "plot",
+          legend.position = "bottom",
+          legend.direction = "horizontal"
+    )
+  
+  
+  ggplot(cbsa,
+         aes(x = yrbuilt,
+             y = estimate,
+             fill = structure)) +
+    geom_col(position = "stack") +
+    facet_wrap(~tenure) +
+    coord_flip() +
+    scale_y_continuous(labels = scales::number_format(big.mark = ",")) +
+    labs(title = "Distribution of housing stock by year built and tenure") +   
+    theme_minimal() +
+    scale_fill_manual(values = housing_palette) +
+    theme(legend.title = element_blank(),
+          axis.title = element_blank(),
+          plot.title.position = "plot",
+          legend.position = "bottom",
+          legend.direction = "horizontal"
+    )
+  
+  
+  ggplot(local,
+         aes(x = yrbuilt,
+             y = estimate,
+             fill = structure)) +
+    geom_col(position = "stack") +
+    facet_wrap(~tenure) +
+    coord_flip() +
+    scale_y_continuous(labels = scales::number_format(big.mark = ",")) +
+    labs(title = "Distribution of housing stock by year built and tenure") +
+    theme_minimal() +
+    scale_fill_manual(values = housing_palette) +
+    theme(legend.title = element_blank(),
+          axis.title = element_blank(),
+          plot.title.position = "plot",
+          legend.position = "bottom",
+          legend.direction = "horizontal"
+    )
+# Create shiny apps for the above where each plot geography is its own tab. There should only be a
+# filter for geography in the CBSA and locality tabs. There is no need for a year filter in this shiny
+# app.
+  
+  
+## ---- Tenure by Bedrooms: Table B25042 ----
+  
+b25042 <- read_rds("data/b25042.rds")
+  
+# Define the desired order for bedrooms
+bedroom_order <- c("No bedroom", "1 bedroom", "2 bedrooms", "3 bedrooms", 
+                     "4 bedrooms", "5 or more bedrooms")
+  
+  
+state_bed <- b25042 |> 
+  group_by(year, tenure, br) |> 
+  summarise(estimate = sum(estimate)) %>%
+  mutate(br = factor(br, levels = bedroom_order))
+
+cbsa_bed <- b25042 |> 
+  group_by(year, cbsa_title, tenure, br) |> 
+  summarise(estimate = sum(estimate)) %>%
+  mutate(br = factor(br, levels = bedroom_order))
+
+local_bed <- b25042 |> 
+  group_by(year, name_long, tenure, br) |> 
+  summarise(estimate = sum(estimate)) %>%
+  mutate(br = factor(br, levels = bedroom_order))
+
+state <- state_bed |> 
+  filter(year == 2023)
+
+
+cbsa <- cbsa_bed |> 
+  filter(year == 2023,
+         cbsa_title == "Richmond, VA")
+
+local <- local_bed |> 
+  filter(year == 2023,
+         name_long == "Richmond City")
+
+
+# Create the plot with reordered factors
+
+ggplot(state,
+       aes(
+         x = br,
+         y = estimate,
+         fill = tenure)) +
+  geom_col() +
+  coord_flip() +
+  facet_wrap(~tenure) +
+  scale_fill_hfv() +
+  scale_y_continuous(labels = scales::number_format(big.mark = ",")) +
+  labs(title = "Distribution of housing be bedroom count and tenure") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0),
+    plot.title.position = "plot",
+    legend.position = "none",
+    axis.title = element_blank()
+  )
+
+
+ggplot(cbsa,
+       aes(
+         x = br,
+         y = estimate,
+         fill = tenure)) +
+  geom_col() +
+  coord_flip() +
+  facet_wrap(~tenure) +
+  scale_fill_hfv() +
+  scale_y_continuous(labels = scales::number_format(big.mark = ",")) +
+  labs(title = "Distribution of housing be bedroom count and tenure") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0),
+    plot.title.position = "plot",
+    legend.position = "none",
+    axis.title = element_blank()
+  )
+
+
+ggplot(local,
+       aes(
+         x = br,
+         y = estimate,
+         fill = tenure)) +
+  geom_col() +
+  coord_flip() +
+  facet_wrap(~tenure) +
+  scale_fill_hfv() +
+  scale_y_continuous(labels = scales::number_format(big.mark = ",")) +
+  labs(title = "Distribution of housing be bedroom count and tenure") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0),
+    plot.title.position = "plot",
+    legend.position = "none",
+    axis.title = element_blank()
+  )
+
+# Create shiny apps for the above where each plot geography is its own tab. There should only be a
+# filter for geography in the CBSA and locality tabs. The year filter should be present across all tabs.
+
+## ---- Overcrowding ----
+
+
+b25014 <- read_rds("data/b25014.rds")
+
+state_crowd <- b25014 |> 
+  group_by(year, tenure,overcrowded) |> 
+  summarise(estimate = sum(estimate))  |> 
+  ungroup() |> 
+  group_by(year, tenure) |> 
+  mutate(percent = estimate/sum(estimate))
+
+
+cbsa_crowd <- b25014 |> 
+  group_by(year, cbsa_title, tenure, overcrowded) |> 
+  summarise(estimate = sum(estimate)) |> 
+  ungroup() |> 
+  group_by(year, cbsa_title, tenure) |> 
+  mutate(percent = estimate/sum(estimate))
+
+local_crowd <- b25014 |> 
+  group_by(year, name_long, tenure, opr, overcrowded) |> 
+  summarise(estimate = sum(estimate))  |> 
+  ungroup() |> 
+  group_by(year, name_long, tenure) |> 
+  mutate(percent = estimate/sum(estimate))
+
+
+
+state <- state_crowd |> 
+  filter(year == 2023) |> 
+  filter(overcrowded != "Not overcrowded")
+
+cbsa <- cbsa_crowd |> 
+  filter(year == 2023, 
+         cbsa_title == "Richmond, VA") |> 
+  filter(overcrowded != "Not overcrowded")
+
+local <- local_crowd |> 
+  filter(year == 2023, 
+         name_long == "Richmond City") |> 
+  filter(overcrowded != "Not overcrowded")
+
+
+ggplot(state,
+       aes(
+         x = overcrowded,
+         y = percent,
+         fill = tenure)) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    limits = c(0, 0.03),  # Adjust based on your data
+    expand = expansion(mult = c(0, 0.1))
+  ) +
+  scale_fill_hfv() +
+  labs(
+    title = "Housing Overcrowding Rates by Tenure",
+    subtitle = "Renters experience higher overcrowding rates than homeowners",
+    x = "Overcrowding Category",
+    y = "Percent of Households",
+    fill = "Housing Tenure"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    panel.grid.major.x = element_blank(),
+    legend.position = "bottom"
+  )
+
+
+ggplot(cbsa,
+       aes(
+         x = overcrowded,
+         y = percent,
+         fill = tenure)) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    limits = c(0, 0.03),  # Adjust based on your data
+    expand = expansion(mult = c(0, 0.1))
+  ) +
+  scale_fill_hfv() +
+  labs(
+    title = "Housing Overcrowding Rates by Tenure",
+    subtitle = "Renters experience higher overcrowding rates than homeowners",
+    x = "Overcrowding Category",
+    y = "Percent of Households",
+    fill = "Housing Tenure"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    panel.grid.major.x = element_blank(),
+    legend.position = "bottom"
+  )
+
+
+ggplot(local,
+       aes(
+         x = overcrowded,
+         y = percent,
+         fill = tenure)) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    limits = c(0, 0.03),  # Adjust based on your data
+    expand = expansion(mult = c(0, 0.1))
+  ) +
+  scale_fill_hfv() +
+  labs(
+    title = "Housing Overcrowding Rates by Tenure",
+    subtitle = "Renters experience higher overcrowding rates than homeowners",
+    x = "Overcrowding Category",
+    y = "Percent of Households",
+    fill = "Housing Tenure"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    panel.grid.major.x = element_blank(),
+    legend.position = "bottom"
+  )
+
+# Create shiny apps for the above where each plot geography is its own tab. There should only be a
+# filter for geography in the CBSA and locality tabs. The year filter should be present across all tabs.
+
+## ---- Homeownership Rate: Table B25003 ----- ##
+
+b25003_state <- read_rds("data/b25003_state.rds") |> 
+  mutate(ho_rate = est_owner/est_all)
+
+

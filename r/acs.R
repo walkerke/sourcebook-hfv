@@ -1477,3 +1477,166 @@ b25032_data <- b25032_data %>%
   left_join(va_lookup, by = "fips_full")
 
 write_rds(b25032_data, "data/b25032.rds")
+
+## ----- Table B25127: Tenure by Year Structure Built by Units in Structure ----
+
+
+b25127_vars <- load_variables(current_acs, "acs5") |> 
+  filter(str_sub(name, end = 6) %in% "B25127")
+
+b25127_raw <- map_dfr(years, function(yr){
+  b25127_pull <- get_acs(
+    geography = "county",
+    state = "VA",
+    table = "B25127",
+    year = yr,
+    survey = "acs5",
+    cache_table = TRUE
+  ) |> 
+    mutate(year = yr)
+})
+
+b25127_vars_cleaned <- b25127_vars |> 
+  separate(label, into = c("est", "total", "tenure", "yrbuilt", "structure"), sep = "!!") |> 
+  select(variable = name, tenure, yrbuilt, structure) |> 
+  drop_na()|> 
+  mutate(across(2:3,.fns = ~str_remove_all(.x, ":"))) |> 
+  mutate(tenure = case_when(
+    tenure == "Owner occupied" ~ "Homeowner",
+    tenure == "Renter occupied" ~ "Renter"
+  ))
+
+b25127_raw <- b25127_raw |> 
+  right_join(b25127_vars_cleaned, by = "variable") |> 
+  select(NAME, GEOID, year, tenure, yrbuilt, structure, estimate, moe) 
+
+va_lookup <- read_csv("data/va-cbsa-locality-lookup.csv")
+
+b25127_data <- b25127_raw  %>% 
+  mutate(fips_full = as.numeric(GEOID)) %>% 
+  left_join(va_lookup, by = "fips_full")
+
+write_rds(b25127_data, "data/b25127.rds")
+
+
+## ---- Table B25042: Tenure by Bedrooms ----
+
+b25042_vars <- load_variables(current_acs, "acs5") |> 
+  filter(str_sub(name, end = 6) %in% "B25042")
+
+b25042_raw <- map_dfr(years, function(yr) {
+  b25042_pull <- get_acs(
+    geography = "county",
+    state = "VA",
+    table = "B25042",
+    year = yr,
+    survey = "acs5",
+    cache_table = TRUE
+  ) |> 
+    mutate(year = yr)
+})
+
+b25042_vars_cleaned <- b25042_vars |> 
+  separate(label, into = c("est", "total", "tenure", "br"), sep = "!!") |> 
+  select(variable = name, tenure, br) |> 
+  drop_na() |> 
+  mutate(across(.fns = ~str_remove_all(.x, ":"))) |> 
+  mutate(tenure = case_when(
+    tenure == "Owner occupied" ~ "Homeowner",
+    tenure == "Renter occupied" ~ "Renter"
+  ))
+
+b25042_raw <- b25042_raw |> 
+  right_join(b25042_vars_cleaned, by = "variable") |> 
+  select(NAME, GEOID, year, tenure, br, estimate) |> 
+  mutate(NAME = str_remove_all(NAME, ", Virginia"))
+
+va_lookup <- read_csv("data/va-cbsa-locality-lookup.csv")
+
+b25042_data <- b25042_raw  %>% 
+  mutate(fips_full = as.numeric(GEOID)) %>% 
+  left_join(va_lookup, by = "fips_full")
+
+
+write_rds(b25042_data, "data/b25042.rds")
+
+
+## -----Table B25014: Tenure by Occupants Per Room -----
+
+
+b25014_vars <- load_variables(current_acs, "acs5") %>% 
+  filter(str_detect(name, "B25014")) %>% 
+  filter(str_length(name) == 10)
+
+# Get B25014 data for every locality in Virginia
+
+b25014_raw <- map_dfr(years, function(yr) {
+  b25042_pull <- get_acs(
+    geography = "county",
+    state = "VA",
+    table = "B25014",
+    year = yr,
+    survey = "acs5",
+    cache_table = TRUE
+  ) |> 
+    mutate(year = yr)
+})
+
+# Clean B25014 variable names
+
+b25014_vars_clean <-  b25014_vars %>% 
+  separate(label, into = c("est", "tot", "tenure", "opr"), # Use 'opr' for 'occupants per room'
+           sep = "!!") %>% 
+  select(variable = name, tenure, opr) %>%
+  filter(across(c(tenure, opr), ~!is.na(.x))) %>% 
+  mutate(across(.fns = ~str_remove_all(.x, ":")),
+         tenure = str_remove_all(tenure, " occupied"),
+         opr = str_remove_all(opr, " occupants per room")) %>% 
+  mutate(overcrowded = case_when(
+    opr %in% c("0.50 or less", "0.51 to 1.00") ~ "Not overcrowded",
+    opr == "1.01 to 1.50" ~ "Overcrowded",
+    TRUE ~ "Very overcrowded"
+  ))
+
+# Join B25014 variables to data and calculate new sums
+
+b25014_prep <- b25014_raw %>% 
+  right_join(b25014_vars_clean, by = "variable") %>% 
+  select(GEOID, year, tenure, opr, overcrowded, estimate, moe) %>% 
+  group_by(year, GEOID, tenure, opr, overcrowded) %>% 
+  summarise(
+    estimate = sum(estimate),
+    moe = moe_sum(moe, estimate)
+  ) %>% 
+  ungroup()
+
+# Adorn subtotals for both owner and renter units and add data reliability info
+
+b25014_data <- b25014_prep %>% 
+  bind_rows(b25014_prep %>%  
+              group_by(GEOID, opr, overcrowded) %>% 
+              summarise(
+                estimate = sum(estimate),
+                moe = moe_sum(moe, estimate)) %>% 
+              ungroup()
+  ) %>% 
+  mutate(tenure = replace_na(tenure, "All")) %>% 
+  mutate(cv = ((moe/1.645)/estimate)*100) %>% # Calculate coefficient of variation
+  mutate(reliability = case_when(
+    cv < 15 ~ "High",
+    cv >= 15 & cv <= 30 ~ "Medium",
+    cv > 30 ~ "Low")
+  )
+
+va_lookup <- read_csv("data/va-cbsa-locality-lookup.csv")
+
+b25014_data <- b25014_data %>% 
+  mutate(fips_full = as.numeric(GEOID)) %>% 
+  left_join(va_lookup, by = "fips_full")
+
+
+write_rds(b25014_data, "data/b25014.rds")
+
+
+
+

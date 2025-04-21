@@ -5,7 +5,6 @@ library(tigris)
 library(readxl)
 library(janitor)
 library(httr)
-source("config.R")
 
 
 
