@@ -78,6 +78,14 @@ cbsa <- c("13720", "13980", "14140", "16820", "19260", "25500", "28700", "31340"
 b25010_vars <- load_variables(current_acs, "acs5") %>% 
   filter(str_detect(name, "B25010"))
 
+
+va_lookup <- read_csv("data/va-cbsa-locality-lookup.csv")
+
+cbsa_lookup <- va_lookup %>% 
+  select(cbsa_code, cbsa_title) %>% 
+  unique()
+  
+
 # Get B25010 data and add 'geography' column
 
 b25010_raw <- map_dfr(years, function(yr) {
@@ -90,7 +98,8 @@ b25010_raw <- map_dfr(years, function(yr) {
     table = "B25010",
     year = yr) %>% 
     mutate(year = yr,
-           geography = "state")
+           geography = "state") %>% 
+    mutate(name = "Virginia")
   
   # Pull data for CBSAs
   
@@ -100,7 +109,10 @@ b25010_raw <- map_dfr(years, function(yr) {
     year = yr) %>% 
     mutate(year = yr,
            geography = "cbsa") %>% 
-    filter(GEOID %in% cbsa)
+    filter(GEOID %in% cbsa) %>% 
+    mutate(cbsa_code = as.numeric(GEOID)) %>% 
+    left_join(cbsa_lookup, by = "cbsa_code") %>% 
+    mutate(name = cbsa_title)
   
   # Pull data for localities
   
@@ -110,7 +122,11 @@ b25010_raw <- map_dfr(years, function(yr) {
     table = "B25010",
     year = yr) %>% 
     mutate(year = yr,
-           geography = "locality")
+           geography = "locality") %>% 
+    mutate(fips_full = as.numeric(GEOID)) %>% 
+    left_join(va_lookup, by = "fips_full") %>% 
+    mutate(name = name_long)
+    
   
   # Bind dataframes together
   
@@ -133,7 +149,7 @@ b25010_vars_clean <- b25010_vars %>%
 b25010_data <- b25010_raw %>%
   filter(!GEOID == "51515") %>% # Filter out 2010 'Bedford city' values since 2019 values do not exist
   right_join(b25010_vars_clean, by = "variable") %>% # Join variables to data
-  select(GEOID, geography, year, tenure, estimate, moe) %>% # Simplify columns
+  select(GEOID, name, geography, year, tenure, estimate, moe) %>% # Simplify columns
   mutate(cv = ((moe/1.645)/estimate)*100) %>% # Calculate coefficient of variation
   mutate(reliability = case_when(
     cv < 15 ~ "High",
@@ -533,9 +549,9 @@ med_inc_local <- b25119_local |>
 
 
 
-write_rds(med_inc_state, "shiny/med_inc_tenure/b25119_state.rds")
-write_rds(med_inc_cbsa, "shiny/med_inc_tenure/b25119_cbsa.rds")
-write_rds(med_inc_local, "shiny/med_inc_tenure/b25119_local.rds")
+write_rds(med_inc_state, "data/b25119_state.rds")
+write_rds(med_inc_cbsa, "data/b25119_cbsa.rds")
+write_rds(med_inc_local, "data/b25119_local.rds")
 
 ## ---- Table B17001: Poverty Status by Race and Age ----
 
@@ -1244,6 +1260,220 @@ b25106_data <- b25106_raw |>
 write_rds(b25106_data, "data/b25106_data.rds")
 
 
+## ---- Table B19013
+
+b19013 <- paste0("B19013", LETTERS[2:9])
+
+# Get variables for Table B19013, then create a function to pull race or ethnicity
+# from the variables. 
+b19013_defns <- load_variables(2023, "acs5") %>%
+  filter(str_sub(name, end = 7) %in% b19013) %>%
+  filter(str_detect(name, "PR") == FALSE)
+
+concept_to_race <- function(x) {
+  out <- x %>%
+    str_remove_all("Median Household Income in the Past 12 Months \\(in 2023 Inflation-Adjusted Dollars\\)") %>%
+    str_extract("(?<=\\().*(?=\\))") %>%
+    str_trim()
+  
+  return(out)
+}
+
+# Clean up the variables and create a column for race.
+b19013_cleaned <- b19013_defns %>%
+  mutate(race = concept_to_race(concept)) %>%
+  separate(label, c("estimate", "medhhincome"), sep = "!!") %>%
+  select(variable = name, medhhincome, race) %>%
+  mutate(across(.fns = ~replace_na(.x, "All")),
+         across(.fns = ~str_remove_all(.x, ":")),
+         across(.fns = ~str_remove_all(.x, "Householder")),
+         across(.fns = ~str_remove_all(.x, "Alone")))
+
+# Table B19013 - Median Household Income by Race and Ethnicity
+
+output_b19013_locality <- map_dfr(b19013, function(tb) {
+  yearly_data <- map_dfr(years, function(yr) {
+    
+    acs_pull <- get_acs(
+      geography = "county",
+      table = tb,
+      year = yr,
+      state = "VA"
+    ) %>%
+      left_join(b19013_cleaned, by = "variable")
+    
+    acs_rearranged <- acs_pull %>%
+      mutate(year = yr) %>%
+      select(variable, year, locality = NAME, fips = GEOID, race, medhhincome,
+             estimate, moe) 
+    
+    acs_rearranged
+  })
+  yearly_data
+})
+
+output_b19013_cbsa <- map_dfr(b19013, function(tb) {
+  yearly_data <- map_dfr(years, function(yr) {
+    
+    acs_pull <- get_acs(
+      geography = "metropolitan statistical area/micropolitan statistical area",
+      table = tb,
+      year = yr
+    ) %>%
+      left_join(b19013_cleaned, by = "variable")
+    
+    acs_rearranged <- acs_pull %>%
+      mutate(year = yr) %>%
+      select(variable, year, CBSA = NAME, fips = GEOID, race, medhhincome,
+             estimate, moe) %>%
+      filter(str_detect(CBSA, "VA"))
+    
+    acs_rearranged
+  })
+  yearly_data
+})
+
+output_b19013_state <- map_dfr(b19013, function(tb) {
+  yearly_data <- map_dfr(years, function(yr) {
+    
+    acs_pull <- get_acs(
+      geography = "state",
+      table = tb,
+      year = yr
+    ) %>%
+      left_join(b19013_cleaned, by = "variable")
+    
+    acs_rearranged <- acs_pull %>%
+      mutate(year = yr) %>%
+      select(variable, year, state = NAME, fips = GEOID, race, medhhincome,
+             estimate, moe)
+    
+    acs_rearranged
+  })
+  yearly_data
+})
+
+# Use the fredR package to get Consumer Price Index for All Urban Consumers from
+# FRED. The CPI will be used to adjust median household income for inflation.
+
+cpi <- fredr(
+  series_id = "CPIAUCSL" # ID for CPI for All Urban Consumers
+) |> 
+  select(date, value) |> # Select date and CPI
+  mutate(date = as.Date(date), # Convert date to date data type.
+         value = as.numeric(value), # Convert CPI to a numeric value.
+         year = year(date)) |> # Create a field for the year and extract year from date.
+  group_by(year) |> # Group by year. 
+  summarise(index = mean(value)) # Calculate annual average CPI. 
+
+current_index <- cpi |> 
+  filter(year == current_acs) |> 
+  pull(index)
+
+# Create a function to convert median household income from ACS to most recent 
+# inflation-adjusted dollar value.
+
+adjustment <- function(x) {
+  transform(x, adjusted = ((current_index/index)*estimate))
+}
+
+join_cpi <- function(x) { 
+  x |> 
+    left_join(cpi, by = "year")
+}
+
+median_dfs <- list(output_b19013_locality, output_b19013_cbsa, output_b19013_state)
+
+result <- median_dfs |> 
+  lapply(join_cpi) |> 
+  lapply(adjustment)
+
+names(result) = c('output_b19013_locality', 'output_b19013_cbsa', 'output_b19013_state')
+
+list2env(result, envir = .GlobalEnv)
+
+adjustment_dfs <- list(output_b19013_locality, output_b19013_cbsa, output_b19013_state)
+
+write_rds(output_b19013_locality, "data/b19013_locality.rds")
+write_rds(output_b19013_cbsa, "data/b19013_cbsa.rds")
+write_rds(output_b19013_state, "data/b19013_state.rds")
+
+## ---- Table B25032: Housing Type by Tenure ---- 
+
+b25032_vars <- load_variables(current_acs, "acs5") %>% 
+  filter(str_detect(name, "B25032")) %>% 
+  filter(str_length(name) == 10)
 
 
+b25032_raw <- map_dfr(years, function(yr){
+  b25032_pull <- get_acs(
+    geography = "county",
+    state = "VA",
+    table = "B25032",
+    year = yr,
+    survey = "acs5",
+    cache_table = TRUE
+  ) |> 
+    mutate(year = yr)
+})
 
+# Clean B25032 variable names
+
+b25032_vars_clean <-  b25032_vars %>% 
+  separate(label, into = c("est", "tot", "tenure", "type"),
+           sep = "!!") %>% 
+  select(variable = name, tenure, type) %>%
+  filter(if_any(c(tenure, type), ~!is.na(.x))) %>% 
+  mutate(across(.fns = ~str_remove_all(.x, ":")),
+         tenure = str_remove_all(tenure, "-occupied housing units")) %>% 
+  mutate(type = case_when(
+    type == "1, detached" ~ "Single-family (detached)",
+    type == "1, attached" ~ "Single-family (attached)",
+    type == "2" ~ "Small-scale multifamily",
+    type == "3 or 4" ~ "Small-scale multifamily",
+    type == "5 to 9" ~ "Small-scale multifamily",
+    type == "10 to 19" ~ "Small-scale multifamily",
+    type == "20 to 49" ~ "Medium-scale multifamily",
+    type == "50 or more" ~ "Large-scale multifamily",
+    type == "Mobile home" ~ "Mobile (manufactured) home",
+    type == "Boat, RV, van, etc." ~ "Other")
+  )
+
+# Join B25032 variables to data and calculate new sums
+
+b25032_prep <- b25032_raw %>% 
+  right_join(b25032_vars_clean, by = "variable") %>% 
+  select(GEOID, tenure, year, type, estimate, moe) %>% 
+  group_by(GEOID, year, tenure, type) %>% 
+  summarise(
+    estimate = sum(estimate),
+    moe = moe_sum(moe, estimate)
+  ) %>% 
+  ungroup()
+
+# Adorn subtotals for both owner and renter units and add data reliability info
+
+b25032_data <- b25032_prep %>% 
+  bind_rows(b25032_prep %>%  
+              group_by(GEOID, type) %>% 
+              summarise(
+                estimate = sum(estimate),
+                moe = moe_sum(moe, estimate)) %>% 
+              ungroup()
+  ) %>% 
+  mutate(tenure = replace_na(tenure, "All")) %>% 
+  mutate(cv = ((moe/1.645)/estimate)*100) %>% # Calculate coefficient of variation
+  mutate(reliability = case_when(
+    cv < 15 ~ "High",
+    cv >= 15 & cv <= 30 ~ "Medium",
+    cv > 30 ~ "Low")
+  ) %>% 
+  drop_na(type)
+
+va_lookup <- read_csv("data/va-cbsa-locality-lookup.csv")
+
+b25032_data <- b25032_data %>% 
+  mutate(fips_full = as.numeric(GEOID)) %>% 
+  left_join(va_lookup, by = "fips_full")
+
+write_rds(b25032_data, "data/b25032.rds")

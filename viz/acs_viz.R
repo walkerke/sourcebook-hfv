@@ -536,4 +536,837 @@ ggplot(state,
 # locality filter for locality visualization. Can you help me?
 
 
+## ---- Average Household Size -----
 
+avg_size <- read_rds("data/avg_hh_size.rds") %>% 
+  mutate(tenure = case_when(
+    tenure == "Owner" ~ "Homeowner",
+    TRUE ~ tenure
+  ))
+
+locality <- avg_size %>% 
+  filter(geography == "locality",
+         tenure == "All",
+         name == "Accomack County")
+
+cbsa <- avg_size %>% 
+  filter(geography == "cbsa", 
+         tenure == "Homeowner", 
+         name == "Blacksburg-Christiansburg, VA")
+
+state <- avg_size %>% 
+  filter(geography == "state",
+         tenure == "Homeowner")
+
+
+ggplot(locality,
+       aes(x = year,
+           y = estimate))  +
+  geom_line(linewidth = 1, color = "#011E41") +
+  geom_point(size = 3, color = "#011E41") +
+  geom_smooth(method = "loess", se = TRUE, color = "#40C0C0", fill = "#40C0C0", alpha = 0.2) +
+  labs(title = "Average Household Size Over Time",
+       subtitle = locality$name[1],
+       x = "Year",
+       y = "Average Household Size") +
+  scale_y_continuous(limits = c(min(locality$estimate) * 0.95, max(locality$estimate) * 1.05),
+                     labels = scales::number_format(accuracy = 0.01)) +
+  theme_hfv()
+
+
+ggplot(cbsa,
+       aes(x = year,
+           y = estimate)) +
+  geom_line(linewidth = 1, color = "#011E41") +
+  geom_point(size = 3, color = "#011E41") +
+  geom_smooth(method = "loess", se = TRUE, color = "#40C0C0", fill = "#40C0C0", alpha = 0.2) +
+  labs(title = paste(cbsa$tenure[1], "Average Household Size Over Time"),
+       subtitle = cbsa$name[1],
+       x = "Year",
+       y = "Average Household Size") +
+  scale_y_continuous(limits = c(min(cbsa$estimate) * 0.95, max(cbsa$estimate) * 1.05),
+                     labels = scales::number_format(accuracy = 0.01)) +
+  theme_hfv()
+
+
+# Calculate state-wide average and add annotations for min and max points
+state_plot <- state %>%
+  mutate(label_point = year == min(year) | year == max(year) | estimate == max(estimate) | estimate == min(estimate))
+
+ggplot(state_plot,
+       aes(x = year,
+           y = estimate)) +
+  geom_line(linewidth = 1, color = "#011E41") +
+  geom_point(size = 3, color = "#011E41") +
+  geom_smooth(method = "loess", se = TRUE, color = "#40C0C0", fill = "#40C0C0", alpha = 0.2) +
+  geom_text(data = filter(state_plot, label_point),
+            aes(label = scales::number(estimate, accuracy = 0.01)),
+            vjust = -0.8, hjust = 0.5, size = 3.5) +
+  labs(title = paste(state$tenure[1], "Average Household Size in Virginia"),
+       subtitle = "2010-2023",
+       x = "Year",
+       y = "Average Household Size") +
+  scale_y_continuous(limits = c(min(state$estimate) * 0.93, max(state$estimate) * 1.07),
+                     labels = scales::number_format(accuracy = 0.01)) +
+  theme_hfv()
+
+
+## ---- Median Household Income ---- ##
+
+state_minc <- read_rds("data/b25119_state.rds")
+
+cbsa_minc <- read_rds("data/b25119_cbsa.rds")
+
+local_minc <- read_rds("data/b25119_local.rds")
+
+state <- state_minc %>% 
+  filter(state == "Virginia",
+         tenure == "All households")
+
+cbsa <- cbsa_minc %>% 
+  filter(cbsa == "Blacksburg-Christiansburg-Radford, VA Metro Area",
+         tenure == "All households")
+
+local <- local_minc %>% 
+  filter(locality == "Accomack County",
+         tenure == "All households")
+
+# Shiny app should be filterable by state and you should be able to set y as estimate or adjusted, 
+# depending on whether you want to see real (adjusted) or nominal (estimate) values
+
+ggplot(state,
+       aes(x = year, 
+           y = estimate)) +
+  geom_line() +
+  geom_point() +
+  theme_hfv() +
+  scale_y_continuous(labels = scales::dollar_format())
+
+
+ggplot(cbsa,
+       aes(x = year, 
+           y = estimate)) +
+  geom_line() +
+  geom_point() +
+  theme_hfv() +
+  scale_y_continuous(labels = scales::dollar_format())
+
+ggplot(local,
+       aes(x = year, 
+           y = estimate)) +
+  geom_line() +
+  geom_point() +
+  theme_hfv() +
+  scale_y_continuous(labels = scales::dollar_format())
+
+# Create shiny apps for the above where each plot is its own tab and allow there to be filters 
+# that adjust the geography and tenure. The filter for tenure should allow you to select more than 
+# one tenure option at a time. There should also be a filter that allows you to switch between 
+# estimate and adjusted as the y value in the plot.
+
+## ---- Income Distribution by Tenure ---- 
+
+
+# Read in the latest data.
+inc_dist <- read_rds("data/b25118_data.rds")
+
+
+# Aggregate data based on different geographic levels.
+
+income_order <- c("Less than $15,000", "$15,000 to $24,999", "$25,000 to $49,999",
+                  "$50,000 to $74,999", "$75,000 to $99,999", "$100,000 to $149,999",
+                  "$150,000 or more")
+
+state <- inc_dist %>% 
+  group_by(year, tenure, income) %>% 
+  summarise(estimate = sum(estimate)) %>% 
+  mutate(income = factor(income, levels = income_order))
+
+cbsa <- inc_dist %>% 
+  group_by(year, cbsa_title, tenure, income) %>% 
+  summarise(estimate = sum(estimate)) %>% 
+  mutate(income = factor(income, levels = income_order))
+
+local <- inc_dist %>% 
+  mutate(income = factor(income, levels = income_order))
+
+# Set filter options below.
+
+
+
+state <- state %>% 
+  filter(year == 2023)
+
+cbsa <- cbsa %>% 
+  filter(cbsa_title == "Non-Metro",
+         year == 2023)
+
+local <- local %>% 
+  filter(name_long == "Accomack County",
+         year == 2023)
+
+
+
+# Create a data visualization that shows the distribution of households based
+# on household income. The graphic shows the difference between homeowners and
+# renters in a given area, in a given year.
+
+ggplot(state,
+       aes(
+         x = income,
+         y = estimate,
+         fill = tenure)) +
+  geom_col() +
+  facet_wrap(~tenure, ncol = 1) +
+  scale_y_continuous(labels = scales::number_format(big.mark = ",")) +
+  theme_hfv() +
+  scale_fill_hfv() +
+  theme(
+    strip.text = element_blank(),
+    axis.text.x = element_text(angle = 45,  # Angle the text
+                               hjust = 1,    # Horizontal justification
+                               vjust = 1,    # Vertical justification
+                               size = 10,     # Smaller text size
+                               lineheight = 0.9)) +  # Reduced line height
+  scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 10))  # Wrap text at 10 characters
+
+
+ggplot(cbsa,
+       aes(
+         x = income,
+         y = estimate,
+         fill = tenure)) +
+  geom_col() +
+  facet_wrap(~tenure, ncol = 1) +
+  scale_y_continuous(labels = scales::number_format(big.mark = ",")) +
+  theme_hfv() +
+  scale_fill_hfv() +
+  theme(
+    strip.text = element_blank(),
+    axis.text.x = element_text(angle = 45,  # Angle the text
+                               hjust = 1,    # Horizontal justification
+                               vjust = 1,    # Vertical justification
+                               size = 10,     # Smaller text size
+                               lineheight = 0.9)) +  # Reduced line height
+  scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 10))  # Wrap text at 10 characters
+
+
+ggplot(local,
+       aes(
+         x = income,
+         y = estimate,
+         fill = tenure)) +
+  geom_col() +
+  facet_wrap(~tenure, ncol = 1) +
+  scale_y_continuous(labels = scales::number_format(big.mark = ",")) +
+  theme_hfv() +
+  scale_fill_hfv() +
+  theme(
+    strip.text = element_blank(),
+    axis.text.x = element_text(angle = 45,  # Angle the text
+                               hjust = 1,    # Horizontal justification
+                               vjust = 1,    # Vertical justification
+                               size = 10,     # Smaller text size
+                               lineheight = 0.9)) +  # Reduced line height
+  scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 10))  # Wrap text at 10 characters
+
+
+# Create shiny apps for the above where each plot is its own tab and allow there to be filters 
+# that adjust the geography and year. 
+
+
+## ---- Median Household Income by Householder Age ---- 
+
+state_inc_age <- read_rds("data/b19049_state.rds")
+
+cbsa_inc_age <- read_rds("data/b19049_cbsa.rds")
+
+local_inc_age <- read_rds("data/b19049_locality.rds")
+
+state <- state_inc_age %>% 
+  filter(state == "Virginia")
+
+cbsa <- cbsa_inc_age %>% 
+  filter(cbsa == "Richmond, VA Metro Area")
+
+local <- local_inc_age %>% 
+  filter(locality == "Chesterfield County") %>% 
+  mutate(estimate = as.numeric(estimate),
+         adjusted = as.numeric(estimate))
+
+ggplot(state,
+       aes(
+         x = year,
+         y = estimate,
+         color = age)) +
+  geom_line() + 
+  geom_point() +
+  theme_hfv() +
+  scale_color_hfv() +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  scale_x_continuous(
+    breaks = unique(state$year),  # Show only the years in your dataset
+    labels = unique(state$year)   # Use those same years as labels
+  )
+
+
+ggplot(cbsa,
+       aes(
+         x = year,
+         y = estimate,
+         color = age)) +
+  geom_line() + 
+  geom_point() +
+  theme_hfv() +
+  scale_color_hfv() +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  scale_x_continuous(
+    breaks = unique(cbsa$year),  # Show only the years in your dataset
+    labels = unique(cbsa$year)   # Use those same years as labels
+  )
+
+  AQDESWAQggplot(local,
+       aes(
+         x = year,
+         y = estimate,
+         color = age,
+         group = age)) +
+  geom_line() + 
+  geom_point() +
+  theme_hfv() +
+  scale_color_hfv() +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  scale_x_discrete(
+    breaks = unique(local$year),  # Show only the years in your dataset
+    labels = unique(local$year)   # Use those same years as labels
+  )
+
+  # Create shiny apps for the above where each plot is its own tab and allow there to be filters 
+  # that adjust the geography. There should also be a filter that allows you to switch between 
+  # estimate and adjusted as the y value in the plot.
+  
+  ## ---- Median Household Income by Race/Ethnicity - Table B19013B-I -----
+  
+  locality_rinc <- read_rds("data/b19013_locality.rds") %>% 
+    mutate(locality = str_remove(locality, ", Virginia"))
+  cbsa_rinc <- read_rds("data/b19013_cbsa.rds")
+  state_rinc <- read_rds("data/b19013_state.rds")
+  
+  
+  state <- state_rinc %>% 
+    filter(year == 2023,
+           state == "Virginia")
+  
+  cbsa <- cbsa_rinc %>% 
+    filter(year == 2023,
+           CBSA == "Richmond, VA Metro Area")
+  
+  local <- locality_rinc %>% 
+    filter(year == 2023,
+           locality == "Richmond city")
+  
+  
+  ggplot(state,
+         aes(
+           x = reorder(race, estimate),
+           y = estimate,
+           fill = race)) +
+    geom_col() +
+    coord_flip() +
+    scale_y_continuous(labels = scales::dollar_format())
+  
+  
+  # First, get the actual unique race values from your data
+  race_levels <- unique(state$race)
+  
+  # Create color vector without names first
+  color_values <- c("#E0592A", "#259591", "#011E41", "#40C0C0", 
+                    "#FFC658", "#FF7276", "#8B85CA", "#B1005F")
+  
+  # Then create a named vector matching your actual data values
+  race_colors <- setNames(color_values[1:length(race_levels)], race_levels)
+  
+  # Now use that in your plot with labels
+  ggplot(state %>% 
+           drop_na(),
+         aes(
+           x = reorder(race, estimate),
+           y = estimate,
+           fill = race)) +
+    geom_col() +
+    # Add the value labels at the end of each bar, matching the fill color
+    geom_text(aes(label = scales::dollar(estimate), color = race),
+              hjust = -0.2) +  # Position labels just outside the bars
+    # Make the text colors match the fill colors
+    scale_color_manual(values = race_colors) +
+    # Set the fill colors
+    scale_fill_manual(values = race_colors) +
+    # Extend the plot area to make room for labels
+    coord_flip(clip = "off") +
+    # Format y-axis with dollar signs
+    scale_y_continuous(labels = scales::dollar_format()) +
+    # Add some spacing on the right for the labels
+    theme_hfv() +
+    theme(plot.margin = margin(0.5, 2, 0.5, 0.5, "cm")) +
+    # Hide the color legend since it's redundant with labels
+    guides(color = "none")
+  
+  ggplot(cbsa %>% 
+           drop_na(),
+         aes(
+           x = reorder(race, estimate),
+           y = estimate,
+           fill = race)) +
+    geom_col() +
+    # Add the value labels at the end of each bar, matching the fill color
+    geom_text(aes(label = scales::dollar(estimate), color = race),
+              hjust = -0.2) +  # Position labels just outside the bars
+    # Make the text colors match the fill colors
+    scale_color_manual(values = race_colors) +
+    # Set the fill colors
+    scale_fill_manual(values = race_colors) +
+    # Extend the plot area to make room for labels
+    coord_flip(clip = "off") +
+    # Format y-axis with dollar signs
+    scale_y_continuous(labels = scales::dollar_format()) +
+    # Add some spacing on the right for the labels
+    theme_hfv() +
+    theme(plot.margin = margin(0.5, 2, 0.5, 0.5, "cm")) +
+    # Hide the color legend since it's redundant with labels
+    guides(color = "none")
+  
+  ggplot(local %>% 
+           drop_na(),
+         aes(
+           x = reorder(race, estimate),
+           y = estimate,
+           fill = race)) +
+    geom_col() +
+    # Add the value labels at the end of each bar, matching the fill color
+    geom_text(aes(label = scales::dollar(estimate), color = race),
+              hjust = -0.2) +  # Position labels just outside the bars
+    # Make the text colors match the fill colors
+    scale_color_manual(values = race_colors) +
+    # Set the fill colors
+    scale_fill_manual(values = race_colors) +
+    # Extend the plot area to make room for labels
+    coord_flip(clip = "off") +
+    # Format y-axis with dollar signs
+    scale_y_continuous(labels = scales::dollar_format()) +
+    # Add some spacing on the right for the labels
+    theme_hfv() +
+    theme(plot.margin = margin(0.5, 2, 0.5, 0.5, "cm")) +
+    # Hide the color legend since it's redundant with labels
+    guides(color = "none")
+  
+  
+  # Create shiny apps for the visualizations above. There should be tabs 
+  # for each geography. Filters are available for different geographies. For 
+  # example, the state visualization allows you to filter for each state. 
+  # All visualizations should allow you to filter for different years as well.
+  
+  ## ---- Poverty Rate by Race and Ethnicity - Table B17001 ----
+  
+  poverty_race <- read_rds("data/poverty_race.rds") 
+  
+  va_lookup <- read_csv("data/va-cbsa-locality-lookup.csv") %>% 
+    mutate(fips = as.character(fips_full))
+  
+  
+  pov_race_state <- poverty_race %>% 
+    group_by(year, race) %>% 
+    summarise(estimate = sum(estimate),
+              totalrace = sum(totalrace)) %>% 
+    mutate(rate = estimate/totalrace) %>% 
+    ungroup()
+  
+  pov_race_cbsa <- poverty_race %>% 
+    left_join(va_lookup, by = "fips") %>% 
+    group_by(year, race, cbsa_title) %>% 
+    summarise(estimate = sum(estimate),
+              totalrace = sum(totalrace)) %>% 
+    mutate(rate = estimate/totalrace) %>% 
+    ungroup()
+  
+  pov_race_local <- poverty_race
+  
+  
+  # Set placeholders for filters by year.
+  
+  state <- pov_race_state
+  
+  cbsa <- pov_race_cbsa %>% 
+    filter(cbsa_title == "Richmond, VA")
+  
+  local <- pov_race_local %>% 
+    filter(locality == "Richmond city")
+  
+  # Create data visualizations that compare poverty rate by race over time.
+  
+  # Calculate the mean rate for each race (you can use max() or last() instead)
+  state_summary <- state %>%
+    group_by(race) %>%
+    summarize(mean_rate = mean(rate, na.rm = TRUE)) %>%
+    arrange(desc(mean_rate))  # Arrange in descending order
+  
+  # Create a new factor with levels ordered by the mean rate
+  state <- state %>%
+    mutate(race_ordered = factor(race, levels = state_summary$race))
+  
+  # Now use race_ordered for faceting
+  ggplot(state,
+         aes(
+           x = year,
+           y = rate,
+           color = race_ordered,
+           group = race_ordered)) +
+    geom_line() +
+    geom_point() +
+    facet_wrap(~race_ordered, nrow = 1) +
+    # Use your custom color palette
+    scale_color_manual(values = race_colors) +
+    theme_minimal()
+
+  
+  # Calculate the mean rate for each race (you can use max() or last() instead)
+  cbsa_summary <- cbsa %>%
+    group_by(race) %>%
+    summarize(mean_rate = mean(rate, na.rm = TRUE)) %>%
+    arrange(desc(mean_rate))  # Arrange in descending order
+  
+  # Create a new factor with levels ordered by the mean rate
+  cbsa <- cbsa %>%
+    mutate(race_ordered = factor(race, levels = cbsa_summary$race))
+  
+  # Now use race_ordered for faceting
+  ggplot(cbsa,
+         aes(
+           x = year,
+           y = rate,
+           color = race_ordered,
+           group = race_ordered)) +
+    geom_line(linewidth = 1) +  # Make lines thicker
+    geom_point(size = 2) +      # Make points larger
+    facet_wrap(~race_ordered, ncol = 3) +  # Use 3 columns instead of 1 row
+    scale_color_manual(values = race_colors) +
+    # Better x-axis formatting - show fewer years
+    scale_x_discrete(breaks = seq(min(cbsa$year), max(cbsa$year), by = 5)) +  
+    # Format y-axis as percentage
+    scale_y_continuous(labels = scales::percent_format(), 
+                       limits = c(0, NA)) +  # Start y-axis at 0
+    # Improve theme elements
+    theme_minimal() +
+    theme(
+      strip.text = element_text(size = 12, face = "bold"),  # Larger facet titles
+      legend.position = "none",  # Remove redundant legend
+      panel.spacing = unit(1.5, "lines"),  # More space between facets
+      panel.grid.minor = element_blank(),  # Remove minor gridlines
+      plot.title = element_text(size = 14, face = "bold"),  # Larger plot title
+      plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+      axis.title = element_blank()# More margin space
+    ) 
+  
+  # Calculate the mean rate for each race (you can use max() or last() instead)
+  local_summary <- local %>%
+    group_by(race) %>%
+    summarize(mean_rate = mean(rate, na.rm = TRUE)) %>%
+    arrange(desc(mean_rate))  # Arrange in descending order
+  
+  # Create a new factor with levels ordered by the mean rate
+  local <- local %>%
+    mutate(race_ordered = factor(race, levels = local_summary$race))
+  
+  # Now use race_ordered for faceting
+  ggplot(local,
+         aes(
+           x = year,
+           y = rate,
+           color = race_ordered,
+           group = race_ordered)) +
+    geom_line(linewidth = 1) +  # Make lines thicker
+    geom_point(size = 2) +      # Make points larger
+    facet_wrap(~race_ordered, ncol = 3) +  # Use 3 columns instead of 1 row
+    scale_color_manual(values = race_colors) +
+    # Better x-axis formatting - show fewer years
+    scale_x_discrete(breaks = seq(min(local$year), max(local$year), by = 5)) +  
+    # Format y-axis as percentage
+    scale_y_continuous(labels = scales::percent_format(), 
+                       limits = c(0, NA)) +  # Start y-axis at 0
+    # Improve theme elements
+    theme_minimal() +
+    theme(
+      strip.text = element_text(size = 12, face = "bold"),  # Larger facet titles
+      legend.position = "none",  # Remove redundant legend
+      panel.spacing = unit(1.5, "lines"),  # More space between facets
+      panel.grid.minor = element_blank(),  # Remove minor gridlines
+      plot.title = element_text(size = 14, face = "bold"),  # Larger plot title
+      plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+      axis.title = element_blank()# More margin space
+    ) 
+  
+  ## ---- Poverty Rate by Age - Table B17001 -----
+  
+  poverty_age <- read_rds("data/poverty_age.rds")
+
+  va_lookup <- read_csv("data/va-cbsa-locality-lookup.csv") %>% 
+    mutate(fips = as.character(fips_full))
+  
+  pov_age_state <- poverty_age %>% 
+    group_by(year, age) %>% 
+    summarise(estimate = sum(estimate),
+              totalage = sum(totalage)) %>% 
+    mutate(rate = estimate/totalage) %>% 
+    ungroup()
+  
+  pov_age_cbsa <- poverty_age %>% 
+    left_join(va_lookup, by = "fips") %>% 
+    group_by(year, age, cbsa_title) %>% 
+    summarise(estimate = sum(estimate),
+              totalage = sum(totalage)) %>% 
+    mutate(rate = estimate/totalage) %>% 
+    ungroup()
+  
+  pov_age_local <- poverty_age  
+  
+  # Set placeholders for filters by year.
+  
+  state <- pov_age_state %>%
+    mutate(age_group = case_when(
+      age %in% c("17 years and under", "18 to 24 years") ~ "Youth (under 25)",
+      age %in% c("25 to 34 years", "35 to 44 years") ~ "Young Adults (25-44)",
+      TRUE ~ "Middle-Aged and Older (45+)"
+    )) %>%
+    # Convert to factor with specific level order
+    mutate(age_group = factor(age_group, levels = c(
+      "Youth (under 25)", 
+      "Young Adults (25-44)", 
+      "Middle-Aged and Older (45+)"
+    )))
+  
+
+  cbsa <- pov_age_cbsa %>% 
+    filter(cbsa_title == "Richmond, VA") %>%
+    mutate(age_group = case_when(
+      age %in% c("17 years and under", "18 to 24 years") ~ "Youth (under 25)",
+      age %in% c("25 to 34 years", "35 to 44 years") ~ "Young Adults (25-44)",
+      TRUE ~ "Middle-Aged and Older (45+)"
+    )) %>%
+    # Convert to factor with specific level order
+    mutate(age_group = factor(age_group, levels = c(
+      "Youth (under 25)", 
+      "Young Adults (25-44)", 
+      "Middle-Aged and Older (45+)"
+    )))
+  
+  local <- pov_age_local %>% 
+    filter(locality == "Richmond city") %>%
+    mutate(age_group = case_when(
+      age %in% c("17 years and under", "18 to 24 years") ~ "Youth (under 25)",
+      age %in% c("25 to 34 years", "35 to 44 years") ~ "Young Adults (25-44)",
+      TRUE ~ "Middle-Aged and Older (45+)"
+    )) %>%
+    # Convert to factor with specific level order
+    mutate(age_group = factor(age_group, levels = c(
+      "Youth (under 25)", 
+      "Young Adults (25-44)", 
+      "Middle-Aged and Older (45+)"
+    )))
+  
+  # Create data visualizations that compare poverty rate by age over time.
+  
+  ggplot(state,
+         aes(
+           x = year,
+           y = rate,
+           color = age,
+           group = age
+         )) +
+    geom_line(linewidth = 1) +
+    geom_point(size = 2) +
+    # Change to 2 rows instead of 1 for better proportions
+    facet_wrap(~age_group, nrow = 1) +
+    # Create a custom color palette for age groups
+    scale_color_manual(values = c(
+      "17 years and under" = "#FFC658", # Desert
+      "18 to 24 years" = "#E0592A",     # HousingX Orange
+      "25 to 34 years" = "#259591",     # Grass
+      "35 to 44 years" = "#40C0C0",     # Sky
+      "45 to 54 years" = "#8B85CA",     # Lilac
+      "55 to 64 years" = "#B1005F",     # Berry
+      "65 years and over" = "#FF7276"   # HousingX Red
+    )) +
+    # Format y-axis as percentage
+    scale_y_continuous(labels = scales::percent_format()) +
+    # Show fewer years on x-axis
+    scale_x_discrete(breaks = seq(min(state$year), max(state$year), by = 5)) +
+    # Clean up the appearance
+    theme_minimal() +
+    theme(
+      # Remove redundant legend
+      legend.position = "none",
+      # Increase facet title size
+      strip.text = element_text(size = 12, face = "bold"),
+      # More space between facets
+      panel.spacing = unit(1.5, "lines"),
+      # Remove minor gridlines
+      panel.grid.minor = element_blank(),
+      # Add more margin space
+      plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+      # Increase title text size
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
+    )
+  
+  ggplot(cbsa,
+         aes(
+           x = year,
+           y = rate,
+           color = age,
+           group = age
+         )) +
+    geom_line(linewidth = 1) +
+    geom_point(size = 2) +
+    # Change to 2 rows instead of 1 for better proportions
+    facet_wrap(~age_group, nrow = 1) +
+    # Create a custom color palette for age groups
+    scale_color_manual(values = c(
+      "17 years and under" = "#FFC658", # Desert
+      "18 to 24 years" = "#E0592A",     # HousingX Orange
+      "25 to 34 years" = "#259591",     # Grass
+      "35 to 44 years" = "#40C0C0",     # Sky
+      "45 to 54 years" = "#8B85CA",     # Lilac
+      "55 to 64 years" = "#B1005F",     # Berry
+      "65 years and over" = "#FF7276"   # HousingX Red
+    )) +
+    # Format y-axis as percentage
+    scale_y_continuous(labels = scales::percent_format()) +
+    # Show fewer years on x-axis
+    scale_x_discrete(breaks = seq(min(cbsa$year), max(cbsa$year), by = 5)) +
+    # Clean up the appearance
+    theme_minimal() +
+    theme(
+      # Remove redundant legend
+      legend.position = "none",
+      # Increase facet title size
+      strip.text = element_text(size = 12, face = "bold"),
+      # More space between facets
+      panel.spacing = unit(1.5, "lines"),
+      # Remove minor gridlines
+      panel.grid.minor = element_blank(),
+      # Add more margin space
+      plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+      # Increase title text size
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
+    )
+  
+  ggplot(local,
+         aes(
+           x = year,
+           y = rate,
+           color = age,
+           group = age
+         )) +
+    geom_line(linewidth = 1) +
+    geom_point(size = 2) +
+    facet_wrap(~age_group, nrow = 1) +
+    # Create a custom color palette for age groups
+    scale_color_manual(values = c(
+      "17 years and under" = "#FFC658", # Desert
+      "18 to 24 years" = "#E0592A",     # HousingX Orange
+      "25 to 34 years" = "#259591",     # Grass
+      "35 to 44 years" = "#40C0C0",     # Sky
+      "45 to 54 years" = "#8B85CA",     # Lilac
+      "55 to 64 years" = "#B1005F",     # Berry
+      "65 years and over" = "#FF7276"   # HousingX Red
+    )) +
+    # Format y-axis as percentage
+    scale_y_continuous(labels = scales::percent_format()) +
+    # Show fewer years on x-axis
+    scale_x_discrete(breaks = seq(min(local$year), max(local$year), by = 5)) +
+    # Clean up the appearance
+    theme_minimal() +
+    theme(
+      legend.position = "bottom",
+      legend.title = element_blank(),
+      axis.title = element_blank(),
+      # Increase facet title size
+      strip.text = element_text(size = 12, face = "bold"),
+      # More space between facets
+      panel.spacing = unit(1.5, "lines"),
+      # Remove minor gridlines
+      panel.grid.minor = element_blank(),
+      # Add more margin space
+      plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+      # Increase title text size
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      )
+  
+  # Create shiny apps for the plots above where each plot/geographic-level has its
+  # own tab. Then filters should exist for the CBSA and locality plots, so that you can
+  # filter for individual CBSA or locality.
+  
+## ---- Housing Type by Tenure - Table B25032 -----
+  
+  b25032 <- read_rds("data/b25032.rds")
+  
+  state_housing <- b25032 %>% 
+    group_by(year, tenure, type) %>% 
+    summarise(estimate = sum(estimate)) %>% 
+    group_by(year,tenure) %>% 
+    mutate(percent = estimate/sum(estimate))
+  
+  
+  cbsa_housing <- b25032 %>% 
+    group_by(year, cbsa_title, tenure, type) %>% 
+    summarise(estimate = sum(estimate)) %>% 
+    group_by(year, cbsa_title, tenure) %>% 
+    mutate(percent = estimate/sum(estimate))
+
+  local_housing <- b25032  %>% 
+    group_by(year, name_long, tenure) %>% 
+    mutate(percent = estimate/sum(estimate))
+  
+  
+  state <- state_housing %>% 
+    filter(year == 2023)
+  
+  cbsa <- cbsa_housing %>% 
+    filter(year == 2023)
+  
+  local <- local_housing %>% 
+    filter(year == 2023)
+  
+  
+  ggplot(state,
+         aes(x = reorder(type, -percent),
+             y = percent,
+             fill = tenure)) +
+    geom_col() +
+    facet_wrap(~tenure, ncol = 1) +
+    coord_flip() +
+    scale_fill_manual(values = c("Owner" = "#1e88e5", "Renter" = "#43a047")) +
+    labs(
+      title = "Housing Types by Tenure in Virginia (2023)",
+      x = "Housing Type",
+      y = "Percentage",
+      fill = "Tenure"
+    ) +
+    theme_minimal() +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1))
+  
+  ggplot(state, 
+         aes(x = reorder(type, -percent), 
+             y = percent, 
+             fill = tenure)) +
+    geom_col(position = "dodge") +
+    scale_fill_manual(values = c("Owner" = "#1e88e5", "Renter" = "#43a047")) +
+    coord_flip() +
+    labs(
+      title = "Housing Types by Tenure in Virginia (2023)",
+      x = "Housing Type",
+      y = "Percentage",
+      fill = "Tenure"
+    ) +
+    theme_minimal() +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1))
+    
+    
