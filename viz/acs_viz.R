@@ -1330,43 +1330,93 @@ ggplot(cbsa,
     filter(year == 2023)
   
   cbsa <- cbsa_housing %>% 
-    filter(year == 2023)
+    filter(year == 2023,
+           cbsa_title == "Richmond, VA")
   
   local <- local_housing %>% 
-    filter(year == 2023)
+    filter(year == 2023,
+           name_long == "Richmond City")
   
   
-  ggplot(state,
-         aes(x = reorder(type, -percent),
-             y = percent,
-             fill = tenure)) +
-    geom_col() +
-    facet_wrap(~tenure, ncol = 1) +
-    coord_flip() +
-    scale_fill_manual(values = c("Owner" = "#1e88e5", "Renter" = "#43a047")) +
-    labs(
-      title = "Housing Types by Tenure in Virginia (2023)",
-      x = "Housing Type",
-      y = "Percentage",
-      fill = "Tenure"
-    ) +
-    theme_minimal() +
-    scale_y_continuous(labels = scales::percent_format(accuracy = 1))
+  title_text <- "<b><span style=' color:#011E41'>Homeowner</span></b> and 
+<b><span style=' color:#40C0C0'>renter</span></b> households by housing type"
   
-  ggplot(state, 
+  
+  
+ggplot(state, 
+       aes(x = reorder(type, -percent), 
+           y = percent, 
+           fill = tenure)) +
+  geom_col(position = "dodge") +
+  # Add labels that match fill color
+  geom_text(aes(label = scales::percent(percent, accuracy = 1), 
+                color = tenure),
+            position = position_dodge(width = 0.9),
+            hjust = -0.2) +  # Negative hjust moves labels outside bars
+  facet_wrap(~tenure) +
+  scale_fill_hfv() + 
+  # Use the same color palette for text as for fill
+  scale_color_hfv() +
+  coord_flip() +
+  # Expand the plot area to make room for labels
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                     expand = expansion(mult = c(0, 0.2))) +  # Add 20% expansion on right side
+  labs(
+    title = title_text
+  ) +
+  theme_hfv() +
+  theme(legend.position = "none",
+        strip.text = element_blank())
+  
+  ggplot(cbsa, 
          aes(x = reorder(type, -percent), 
              y = percent, 
              fill = tenure)) +
     geom_col(position = "dodge") +
-    scale_fill_manual(values = c("Owner" = "#1e88e5", "Renter" = "#43a047")) +
+    # Add labels that match fill color
+    geom_text(aes(label = scales::percent(percent, accuracy = 1), 
+                  color = tenure),
+              position = position_dodge(width = 0.9),
+              hjust = -0.2) +  # Negative hjust moves labels outside bars
+    facet_wrap(~tenure) +
+    scale_fill_hfv() + 
+    # Use the same color palette for text as for fill
+    scale_color_hfv() +
     coord_flip() +
+    # Expand the plot area to make room for labels
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                       expand = expansion(mult = c(0, 0.2))) +  # Add 20% expansion on right side
     labs(
-      title = "Housing Types by Tenure in Virginia (2023)",
-      x = "Housing Type",
-      y = "Percentage",
-      fill = "Tenure"
+      title = title_text
     ) +
-    theme_minimal() +
-    scale_y_continuous(labels = scales::percent_format(accuracy = 1))
+    theme_hfv() +
+    theme(legend.position = "none",
+          strip.text = element_blank())
+  
+  ggplot(local, 
+         aes(x = reorder(type, -percent), 
+             y = percent, 
+             fill = tenure)) +
+    geom_col(position = "dodge") +
+    # Add labels that match fill color
+    geom_text(aes(label = scales::percent(percent, accuracy = 1), 
+                  color = tenure),
+              position = position_dodge(width = 0.9),
+              hjust = -0.2) +  # Negative hjust moves labels outside bars
+    facet_wrap(~tenure) +
+    scale_fill_hfv() + 
+    # Use the same color palette for text as for fill
+    scale_color_hfv() +
+    coord_flip() +
+    # Expand the plot area to make room for labels
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                       expand = expansion(mult = c(0, 0.2))) +  # Add 20% expansion on right side
+    labs(
+      title = title_text
+    ) +
+    theme_hfv() +
+    theme(legend.position = "none",
+          strip.text = element_blank())
+  
     
     
