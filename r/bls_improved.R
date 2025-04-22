@@ -18,8 +18,19 @@ library(httr2)
 local_lookup <- read_csv("data/local_lookup.csv") |> 
   rename(fips = fips_full)
 
+
 ## BLS reference tables ---------------
 
+# Read in as needed
+# See ref/bls/qcew/readme.md
+
+# Ownership Titles (values for for own_code field)
+# 
+# own_code <- read_csv("ref/bls/qcew/ownership-titles-csv.csv)
+
+# Aggregation Level Codes (values for for agglvl_code field)
+# 
+# agglvl_code <- read_csv("ref/bls/qcew/agg-level-titles-csv.csv)
 
 
 ## get_qcew_data() --------------------
