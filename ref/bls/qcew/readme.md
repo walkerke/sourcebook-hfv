@@ -2,6 +2,16 @@
 
 Last updated: 2025-04-22
 
+Useful links:
+
+[QCEW Data Files](https://www.bls.gov/cew/downloadable-data-files.htm)
+
+[QCEW Data File Documentation Guide](https://www.bls.gov/cew/about-data/documentation-guide.htm)
+
+[Release Calendar](https://www.bls.gov/cew/release-calendar.htm)
+
+[QCEW Open Data Access: CSV Data Slices](https://www.bls.gov/cew/additional-resources/open-data/csv-data-slices.htm)
+
 ## File Layouts
 
 ### Quarterly Layout
@@ -64,11 +74,8 @@ Documentation:
 | `agglvl_code`  | Num  | 74                                          |
 | `agglvl_title` | Chr  | County, NAICS Sector -- by ownership sector |
 
-::: callout-tip
-## Valid values for county level data
-
-Aggregation level codes in this table differ by geographic level. For data reported at the county level, valid values include `70` (total county employment) through `78` (NAICS 6-digit level).
-:::
+> [!TIP]
+> Aggregation level codes in this table differ by geographic level. For data reported at the county level, valid values include `70` (total county employment) through `78` (NAICS 6-digit level).
 
 Documentation:
 
