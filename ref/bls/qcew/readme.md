@@ -4,13 +4,10 @@ Last updated: 2025-04-22
 
 Useful links:
 
-[QCEW Data Files](https://www.bls.gov/cew/downloadable-data-files.htm)
-
-[QCEW Data File Documentation Guide](https://www.bls.gov/cew/about-data/documentation-guide.htm)
-
-[Release Calendar](https://www.bls.gov/cew/release-calendar.htm)
-
-[QCEW Open Data Access: CSV Data Slices](https://www.bls.gov/cew/additional-resources/open-data/csv-data-slices.htm)
+* [QCEW Data Files](https://www.bls.gov/cew/downloadable-data-files.htm)
+* [QCEW Data File Documentation Guide](https://www.bls.gov/cew/about-data/documentation-guide.htm)
+* [QCEW Open Data Access: CSV Data Slices](https://www.bls.gov/cew/additional-resources/open-data/csv-data-slices.htm)
+* [Release Calendar](https://www.bls.gov/cew/release-calendar.htm)
 
 ## File Layouts
 

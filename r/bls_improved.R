@@ -16,7 +16,7 @@ library(httr2)
 # Load locality table
 
 local_lookup <- read_csv("data/local_lookup.csv") |> 
-  mutate(fips = fips)
+  rename(fips = fips_full)
 
 ## BLS reference tables ---------------
 
@@ -245,7 +245,7 @@ get_qcew_data <- function(
     
     # Join with lookup data
     all_data <- all_data |>
-      dplyr::mutate(fips = area_fips) |>
+      dplyr::rename(fips = area_fips) |>
       dplyr::left_join(lookup_to_join, by = "fips")
     
     message(glue::glue("Joined with {length(join_lookup)} fields from lookup table"))
@@ -258,13 +258,11 @@ get_qcew_data <- function(
 ## Test example -----------------------
 
 test <- get_qcew_data(
-  years = c(2022:2023),
-  qtr = "a",
-  fips = c(51041, 51760),
-  #fields = NULL,
-  #own_code = c(1:5),
-  #agglvl_code = 70,
-  #join_lookup = NULL,
-  #local_lookup = NULL
+  years = c(2022:2023),                       # 2022 and 2023
+  qtr = "a",                                  # Annual data
+  fips = c(51041, 51760),                     # Chesterfield and Richmond
+  agglvl_code = c(70, 71, 72),                # Total, Total by ownership, Total by domain
+  join_lookup = c("name_long", "cbsa_title"), # Add name_long and cbsa_title fields
+  local_lookup = local_lookup                 # Define table to join
 )
 
