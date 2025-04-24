@@ -5,22 +5,15 @@
 library(shiny)
 library(tidyverse)
 library(ggtext)
-library(hdatools)  # Assuming this is your custom package
+library(hdatools) 
 library(ggiraph)
 library(scales)
 library(here)  # For better path handling
+library(shinyWidgets) # Added for toggle switch
 
 # Determine the app directory and set the data path
 # Option 1: Using here package (recommended)
 data_path <- here::here("data", "hh_type.rds")
-
-# Option 2: Using parent directory notation
-# data_path <- "../data/hh_type.rds" 
-
-# Option 3: Using file.path and dynamically finding the parent directory
-# app_dir <- getwd()
-# parent_dir <- dirname(app_dir)
-# data_path <- file.path(parent_dir, "data", "hh_type.rds")
 
 # Load the data with error handling
 tryCatch({
@@ -39,7 +32,7 @@ tryCatch({
 # UI
 ui <- fluidPage(
   # App title and styling
-  titlePanel("Virginia Household Composition"),
+  titlePanel("Household Composition"),
   
   # Add CSS for better styling
   tags$head(
@@ -66,10 +59,15 @@ ui <- fluidPage(
     tabPanel("Statewide", 
              sidebarLayout(
                sidebarPanel(
-                 selectInput("state_year", 
-                             "Select Year:", 
-                             choices = year_list,
-                             selected = max(year_list)),
+                 # Replace select input with toggle switch
+                 switchInput(
+                   inputId = "state_year_toggle",
+                   label = paste("Toggle between", min(year_list), "and", max(year_list)),
+                   value = TRUE,
+                   onLabel = max(year_list),
+                   offLabel = min(year_list),
+                   size = "large"
+                 ),
                  hr(),
                  downloadButton("download_state", "Download Plot"),
                  hr(),
@@ -89,10 +87,15 @@ ui <- fluidPage(
                              "Select CBSA:", 
                              choices = cbsa_list,
                              selected = cbsa_list[1]),
-                 selectInput("cbsa_year", 
-                             "Select Year:", 
-                             choices = year_list,
-                             selected = max(year_list)),
+                 # Replace select input with toggle switch
+                 switchInput(
+                   inputId = "cbsa_year_toggle",
+                   label = "Switch Year",
+                   value = TRUE,
+                   onLabel = max(year_list),
+                   offLabel = min(year_list),
+                   size = "large"
+                 ),
                  hr(),
                  downloadButton("download_cbsa", "Download Plot"),
                  hr(),
@@ -112,10 +115,15 @@ ui <- fluidPage(
                              "Select Locality:", 
                              choices = locality_list,
                              selected = locality_list[1]),
-                 selectInput("locality_year", 
-                             "Select Year:", 
-                             choices = year_list,
-                             selected = max(year_list)),
+                 # Replace select input with toggle switch
+                 switchInput(
+                   inputId = "locality_year_toggle",
+                   label = paste("Toggle between", min(year_list), "and", max(year_list)),
+                   value = TRUE,
+                   onLabel = max(year_list),
+                   offLabel = min(year_list),
+                   size = "large"
+                 ),
                  hr(),
                  downloadButton("download_locality", "Download Plot"),
                  hr(),
@@ -143,6 +151,7 @@ ui <- fluidPage(
                                "Select Locality:", 
                                choices = locality_list,
                                selected = locality_list[1]),
+                   # Keep both years for comparison - we need both for this tab
                    selectInput("compare_year1", 
                                "First Year:", 
                                choices = year_list,
@@ -155,10 +164,15 @@ ui <- fluidPage(
                  
                  conditionalPanel(
                    condition = "input.compare_type == 'Localities'",
-                   selectInput("compare_year", 
-                               "Select Year:", 
-                               choices = year_list,
-                               selected = max(year_list)),
+                   # Replace select input with toggle switch
+                   switchInput(
+                     inputId = "compare_year_toggle",
+                     label = paste("Toggle between", min(year_list), "and", max(year_list)),
+                     value = TRUE,
+                     onLabel = max(year_list),
+                     offLabel = min(year_list),
+                     size = "large"
+                   ),
                    selectInput("compare_locality1", 
                                "First Locality:", 
                                choices = locality_list,
@@ -184,13 +198,32 @@ ui <- fluidPage(
 # Server
 server <- function(input, output) {
   
+  # Create reactive expressions for toggle switches to get selected years
+  state_year <- reactive({
+    if(input$state_year_toggle) max(year_list) else min(year_list)
+  })
+  
+  cbsa_year <- reactive({
+    if(input$cbsa_year_toggle) max(year_list) else min(year_list)
+  })
+  
+  locality_year <- reactive({
+    if(input$locality_year_toggle) max(year_list) else min(year_list)
+  })
+  
+  compare_year <- reactive({
+    if(input$compare_year_toggle) max(year_list) else min(year_list)
+  })
+  
   # Pre-process data for better performance
   # Aggregate data to the locality-level
   locality_hh <- reactive({
+    selected_year <- locality_year()
+    
     hh_type %>% 
       group_by(year, name_long) %>% 
       mutate(percent = estimate/sum(estimate)) %>%
-      filter(year == input$locality_year, 
+      filter(year == selected_year, 
              name_long == input$locality) %>% 
       group_by(type) %>% 
       mutate(rank_within_type = rank(percent, ties.method = "first")) %>% 
@@ -199,12 +232,14 @@ server <- function(input, output) {
   
   # Aggregate data to the CBSA-level
   cbsa_hh <- reactive({
+    selected_year <- cbsa_year()
+    
     hh_type %>% 
       group_by(year, cbsa_title, type, subtype) %>% 
       summarise(estimate = sum(estimate), .groups = "drop") %>% 
       group_by(year, cbsa_title) %>% 
       mutate(percent = estimate/sum(estimate)) %>%
-      filter(year == input$cbsa_year, 
+      filter(year == selected_year, 
              cbsa_title == input$cbsa) %>% 
       group_by(type) %>% 
       mutate(rank_within_type = rank(percent, ties.method = "first")) %>% 
@@ -213,12 +248,14 @@ server <- function(input, output) {
   
   # Aggregate data to the state-level
   state_hh <- reactive({
+    selected_year <- state_year()
+    
     hh_type %>% 
       group_by(year, type, subtype) %>% 
       summarise(estimate = sum(estimate), .groups = "drop") %>% 
       group_by(year) %>% 
       mutate(percent = estimate/sum(estimate)) %>%
-      filter(year == input$state_year) %>% 
+      filter(year == selected_year) %>% 
       group_by(type) %>% 
       mutate(rank_within_type = rank(percent, ties.method = "first")) %>% 
       ungroup()
@@ -247,11 +284,15 @@ server <- function(input, output) {
   # Create interactive plot for Statewide tab
   output$state_plot <- renderGirafe({
     state_data <- state_hh()
+    selected_year <- state_year()
     
     p <- ggplot(state_data,
                 aes(x = reorder(subtype, rank_within_type),
                     y = percent,
                     fill = type)) + 
+      # Make sure text colors match fill colors
+      scale_color_manual(values = c("#011E41", "#40C0C0")) +
+      scale_fill_manual(values = c("#011E41", "#40C0C0")) +
       geom_col_interactive(
         aes(tooltip = paste0(subtype, ": ", scales::percent(percent, accuracy = 0.1))),
         hover_nearest = TRUE
@@ -265,19 +306,16 @@ server <- function(input, output) {
         vjust = -0.5,
         size = 3.5
       ) +
-      # Make sure text colors match fill colors
-      scale_color_hfv() +
       labs(title = title_text,
-           subtitle = paste("Virginia:", input$state_year),
+           subtitle = paste("Virginia:", selected_year),
            x = NULL,
            y = "Percent of Households") +
       scale_y_continuous(labels = scales::percent_format()) +
-      scale_fill_hfv() +
       # Hide the color legend since it's redundant with the fill legend
       guides(color = "none") +
       custom_theme() +
       scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
-      facet_grid(cols = vars(type), scales = "free_x", space = "free")
+      facet_grid(cols = vars(type), scales = "free_x", space = "free") 
     
     girafe(
       ggobj = p,
@@ -294,6 +332,7 @@ server <- function(input, output) {
   # Create interactive plot for CBSA tab
   output$cbsa_plot <- renderGirafe({
     cbsa_data <- cbsa_hh()
+    selected_year <- cbsa_year()
     
     p <- ggplot(cbsa_data,
                 aes(x = reorder(subtype, rank_within_type),
@@ -313,13 +352,13 @@ server <- function(input, output) {
         size = 3.5
       ) +
       # Make sure text colors match fill colors
-      scale_color_hfv() +
+      scale_color_manual(values = c("#011E41", "#40C0C0")) +
+      scale_fill_manual(values = c("#011E41", "#40C0C0")) +
       labs(title = title_text,
-           subtitle = paste(input$cbsa, ":", input$cbsa_year),
+           subtitle = paste(input$cbsa, ":", selected_year),
            x = NULL,
            y = "Percent of Households") +
       scale_y_continuous(labels = scales::percent_format()) +
-      scale_fill_hfv() +
       # Hide the color legend since it's redundant with the fill legend
       guides(color = "none") +
       custom_theme() +
@@ -341,6 +380,7 @@ server <- function(input, output) {
   # Create interactive plot for Locality tab
   output$locality_plot <- renderGirafe({
     locality_data <- locality_hh()
+    selected_year <- locality_year()
     
     p <- ggplot(locality_data,
                 aes(x = reorder(subtype, rank_within_type),
@@ -360,13 +400,13 @@ server <- function(input, output) {
         size = 3.5
       ) +
       # Make sure text colors match fill colors
-      scale_color_hfv() +
+      scale_color_manual(values = c("#011E41", "#40C0C0")) +
       labs(title = title_text,
-           subtitle = paste(input$locality, ":", input$locality_year),
+           subtitle = paste(input$locality, ":", selected_year),
            x = NULL,
            y = "Percent of Households") +
       scale_y_continuous(labels = scales::percent_format()) +
-      scale_fill_hfv() +
+      scale_fill_manual(values = c("#011E41", "#40C0C0")) +
       # Hide the color legend since it's redundant with the fill legend
       guides(color = "none") +
       custom_theme() +
@@ -428,32 +468,38 @@ server <- function(input, output) {
   # Download handlers for each plot
   output$download_state <- downloadHandler(
     filename = function() {
-      paste("virginia-household-composition-", input$state_year, ".png", sep = "")
+      selected_year <- state_year()
+      paste("virginia-household-composition-", selected_year, ".png", sep = "")
     },
     content = function(file) {
-      p <- create_static_plot(state_hh(), paste("Virginia:", input$state_year))
+      selected_year <- state_year()
+      p <- create_static_plot(state_hh(), paste("Virginia:", selected_year))
       ggsave(file, plot = p, width = 10, height = 6, dpi = 300)
     }
   )
   
   output$download_cbsa <- downloadHandler(
     filename = function() {
+      selected_year <- cbsa_year()
       clean_name <- gsub("[^a-zA-Z0-9]", "-", input$cbsa)
-      paste(clean_name, "-household-composition-", input$cbsa_year, ".png", sep = "")
+      paste(clean_name, "-household-composition-", selected_year, ".png", sep = "")
     },
     content = function(file) {
-      p <- create_static_plot(cbsa_hh(), paste(input$cbsa, ":", input$cbsa_year))
+      selected_year <- cbsa_year()
+      p <- create_static_plot(cbsa_hh(), paste(input$cbsa, ":", selected_year))
       ggsave(file, plot = p, width = 10, height = 6, dpi = 300)
     }
   )
   
   output$download_locality <- downloadHandler(
     filename = function() {
+      selected_year <- locality_year()
       clean_name <- gsub("[^a-zA-Z0-9]", "-", input$locality)
-      paste(clean_name, "-household-composition-", input$locality_year, ".png", sep = "")
+      paste(clean_name, "-household-composition-", selected_year, ".png", sep = "")
     },
     content = function(file) {
-      p <- create_static_plot(locality_hh(), paste(input$locality, ":", input$locality_year))
+      selected_year <- locality_year()
+      p <- create_static_plot(locality_hh(), paste(input$locality, ":", selected_year))
       ggsave(file, plot = p, width = 10, height = 6, dpi = 300)
     }
   )
@@ -483,8 +529,10 @@ server <- function(input, output) {
       bind_rows(data1, data2)
     } else {
       # Compare different localities in the same year
+      selected_year <- compare_year()
+      
       data1 <- hh_type %>% 
-        filter(name_long == input$compare_locality1, year == input$compare_year) %>%
+        filter(name_long == input$compare_locality1, year == selected_year) %>%
         group_by(year, name_long) %>% 
         mutate(percent = estimate/sum(estimate)) %>%
         group_by(type) %>% 
@@ -493,7 +541,7 @@ server <- function(input, output) {
         mutate(comparison = input$compare_locality1)
       
       data2 <- hh_type %>% 
-        filter(name_long == input$compare_locality2, year == input$compare_year) %>%
+        filter(name_long == input$compare_locality2, year == selected_year) %>%
         group_by(year, name_long) %>% 
         mutate(percent = estimate/sum(estimate)) %>%
         group_by(type) %>% 
@@ -513,7 +561,8 @@ server <- function(input, output) {
     if (input$compare_type == "Years") {
       plot_title <- paste("Comparing", input$compare_locality, "between", input$compare_year1, "and", input$compare_year2)
     } else {
-      plot_title <- paste("Comparing", input$compare_locality1, "and", input$compare_locality2, "in", input$compare_year)
+      selected_year <- compare_year()
+      plot_title <- paste("Comparing", input$compare_locality1, "and", input$compare_locality2, "in", selected_year)
     }
     
     p <- ggplot(comparison_data,
@@ -570,9 +619,10 @@ server <- function(input, output) {
         clean_name <- gsub("[^a-zA-Z0-9]", "-", input$compare_locality)
         paste(clean_name, "-comparison-", input$compare_year1, "-vs-", input$compare_year2, ".png", sep = "")
       } else {
+        selected_year <- compare_year()
         clean_name1 <- gsub("[^a-zA-Z0-9]", "-", input$compare_locality1)
         clean_name2 <- gsub("[^a-zA-Z0-9]", "-", input$compare_locality2)
-        paste(clean_name1, "-vs-", clean_name2, "-", input$compare_year, ".png", sep = "")
+        paste(clean_name1, "-vs-", clean_name2, "-", selected_year, ".png", sep = "")
       }
     },
     content = function(file) {
@@ -582,7 +632,8 @@ server <- function(input, output) {
       if (input$compare_type == "Years") {
         plot_title <- paste("Comparing", input$compare_locality, "between", input$compare_year1, "and", input$compare_year2)
       } else {
-        plot_title <- paste("Comparing", input$compare_locality1, "and", input$compare_locality2, "in", input$compare_year)
+        selected_year <- compare_year()
+        plot_title <- paste("Comparing", input$compare_locality1, "and", input$compare_locality2, "in", selected_year)
       }
       
       p <- ggplot(comparison_data,
