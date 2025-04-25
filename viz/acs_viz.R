@@ -610,6 +610,12 @@ ggplot(state_plot,
                      labels = scales::number_format(accuracy = 0.01)) +
   theme_hfv()
 
+# Create shiny apps for the above where each plot is its own tab and allow there to be filters 
+# that adjust the geography and tenure. The filter for tenure should allow you to select more than 
+# one tenure option at a time. 
+
+
+
 
 ## ---- Median Household Income ---- ##
 
@@ -666,8 +672,11 @@ ggplot(local,
 
 ## ---- Income Distribution by Tenure ---- 
 
+# The below provides data from Table B25118 of the ACS. It shows the distribution 
+# of households based on income and tenure. 
 
-# Read in the latest data.
+# Read in the latest data. Use the here package in the Shiny app.
+
 inc_dist <- read_rds("data/b25118_data.rds")
 
 
@@ -690,9 +699,7 @@ cbsa <- inc_dist %>%
 local <- inc_dist %>% 
   mutate(income = factor(income, levels = income_order))
 
-# Set filter options below.
-
-
+# Set filter options below. Each filter will present itself in the Shiny app.
 
 state <- state %>% 
   filter(year == 2023)
@@ -706,10 +713,11 @@ local <- local %>%
          year == 2023)
 
 
-
 # Create a data visualization that shows the distribution of households based
 # on household income. The graphic shows the difference between homeowners and
-# renters in a given area, in a given year.
+# renters in a given area, in a given year. Homeowner and renter households should 
+# be visualized at the same time using the facet_wrap() function with one on top of 
+# the other so users can easily compare the two.
 
 ggplot(state,
        aes(
@@ -777,11 +785,22 @@ ggplot(local,
 
 ## ---- Median Household Income by Householder Age ---- 
 
+# The following creates visualizations based on Table B19049 from the ACS. 
+# The data was pulled for different geographic levels because medians cannot
+# be aggregated. The visualizations will provide a line graph showing the 
+# change in median household income by different age groups from 2010 to the latest
+# ACS year. It will also provide the option to see the line graph in both real and
+# current dollars. 
+
+# Read in the latest data. Use the here package in the Shiny app.
+
 state_inc_age <- read_rds("data/b19049_state.rds")
 
 cbsa_inc_age <- read_rds("data/b19049_cbsa.rds")
 
 local_inc_age <- read_rds("data/b19049_locality.rds")
+
+# Set filter options below. Each filter will present itself in the Shiny app.
 
 state <- state_inc_age %>% 
   filter(state == "Virginia")
@@ -793,6 +812,9 @@ local <- local_inc_age %>%
   filter(locality == "Chesterfield County") %>% 
   mutate(estimate = as.numeric(estimate),
          adjusted = as.numeric(estimate))
+
+# Create visualizations for each geographic level to set the style and form of 
+# the plot.
 
 ggplot(state,
        aes(
@@ -825,7 +847,7 @@ ggplot(cbsa,
     labels = unique(cbsa$year)   # Use those same years as labels
   )
 
-  AQDESWAQggplot(local,
+ggplot(local,
        aes(
          x = year,
          y = estimate,
@@ -843,15 +865,25 @@ ggplot(cbsa,
 
   # Create shiny apps for the above where each plot is its own tab and allow there to be filters 
   # that adjust the geography. There should also be a filter that allows you to switch between 
-  # estimate and adjusted as the y value in the plot.
+  # 'estimate' and 'adjusted' as the y value in the plot.
   
-  ## ---- Median Household Income by Race/Ethnicity - Table B19013B-I -----
-  
+## ---- Median Household Income by Race/Ethnicity - Table B19013B-I -----
+
+# The following creates visualizations based on Table B19049 from the ACS. 
+# The data was pulled for different geographic levels because medians cannot
+# be aggregated. The visualizations will provide a line graph showing the 
+# change in median household income by different age groups from 2010 to the latest
+# ACS year. It will also provide the option to see the line graph in both real and
+# current dollars. 
+
+
+# Read in the latest data. Use the here package in the Shiny app.
+
   locality_rinc <- read_rds("data/b19013_locality.rds") %>% 
-    mutate(locality = str_remove(locality, ", Virginia"))
   cbsa_rinc <- read_rds("data/b19013_cbsa.rds")
   state_rinc <- read_rds("data/b19013_state.rds")
-  
+
+  # Set filter options below. Each filter will present itself in the Shiny app
   
   state <- state_rinc %>% 
     filter(year == 2023,
@@ -864,7 +896,11 @@ ggplot(cbsa,
   local <- locality_rinc %>% 
     filter(year == 2023,
            locality == "Richmond city")
-  
+
+# Create visualizations for each geographic level to set the style and form of 
+# the plot. Visualizations show a comparison between different race or ethnic groups
+# and their median household incomes. There is an option to show both the 'estimate'
+# and 'adjusted' values.
   
   ggplot(state,
          aes(
@@ -967,11 +1003,16 @@ ggplot(cbsa,
   
   ## ---- Poverty Rate by Race and Ethnicity - Table B17001 ----
   
+  # The following creates visualizations based on Table B17001 from the ACS, which
+  # will be incorporated into a Shiny app.The visualizations will provide a line graph 
+  # showing the poverty rates of different households based on race and ethnicity from 
+  # 2010 to the latest year.
+  
+  # Read in the latest data. Use the here package in the Shiny app.
+  
   poverty_race <- read_rds("data/poverty_race.rds") 
   
-  va_lookup <- read_csv("data/va-cbsa-locality-lookup.csv") %>% 
-    mutate(fips = as.character(fips_full))
-  
+  # Aggregate data based on geographic levels and calculate the poverty rate.
   
   pov_race_state <- poverty_race %>% 
     group_by(year, race) %>% 
@@ -981,7 +1022,6 @@ ggplot(cbsa,
     ungroup()
   
   pov_race_cbsa <- poverty_race %>% 
-    left_join(va_lookup, by = "fips") %>% 
     group_by(year, race, cbsa_title) %>% 
     summarise(estimate = sum(estimate),
               totalrace = sum(totalrace)) %>% 
@@ -991,17 +1031,10 @@ ggplot(cbsa,
   pov_race_local <- poverty_race
   
   
-  # Set placeholders for filters by year.
+  # Set filter options below. Each filter will present itself in the Shiny app. 
+  # State visualization does not have any filters. 
   
   state <- pov_race_state
-  
-  cbsa <- pov_race_cbsa %>% 
-    filter(cbsa_title == "Richmond, VA")
-  
-  local <- pov_race_local %>% 
-    filter(locality == "Richmond city")
-  
-  # Create data visualizations that compare poverty rate by race over time.
   
   # Calculate the mean rate for each race (you can use max() or last() instead)
   state_summary <- state %>%
@@ -1009,24 +1042,15 @@ ggplot(cbsa,
     summarize(mean_rate = mean(rate, na.rm = TRUE)) %>%
     arrange(desc(mean_rate))  # Arrange in descending order
   
-  # Create a new factor with levels ordered by the mean rate
+  # Calculate the mean rate for each race to help determine order of 
+  # facets.   
   state <- state %>%
     mutate(race_ordered = factor(race, levels = state_summary$race))
   
-  # Now use race_ordered for faceting
-  ggplot(state,
-         aes(
-           x = year,
-           y = rate,
-           color = race_ordered,
-           group = race_ordered)) +
-    geom_line() +
-    geom_point() +
-    facet_wrap(~race_ordered, nrow = 1) +
-    # Use your custom color palette
-    scale_color_manual(values = race_colors) +
-    theme_minimal()
-
+  # CBSA filter will be the CBSA.
+  
+  cbsa <- pov_race_cbsa %>% 
+    filter(cbsa_title == "Richmond, VA")
   
   # Calculate the mean rate for each race (you can use max() or last() instead)
   cbsa_summary <- cbsa %>%
@@ -1034,11 +1058,61 @@ ggplot(cbsa,
     summarize(mean_rate = mean(rate, na.rm = TRUE)) %>%
     arrange(desc(mean_rate))  # Arrange in descending order
   
-  # Create a new factor with levels ordered by the mean rate
+  # Calculate the mean rate for each race to help determine order of 
+  # facets.   
   cbsa <- cbsa %>%
     mutate(race_ordered = factor(race, levels = cbsa_summary$race))
   
-  # Now use race_ordered for faceting
+  
+  # Calculate the mean rate for each race to help determine order of 
+  # facets. 
+  local_summary <- local %>%
+    group_by(race) %>%
+    summarize(mean_rate = mean(rate, na.rm = TRUE)) %>%
+    arrange(desc(mean_rate))  # Arrange in descending order
+  
+  # Create a new factor with levels ordered by the mean rate
+  local <- local %>%
+    mutate(race_ordered = factor(race, levels = local_summary$race))
+  
+  # Local filter will be based on the locality. 
+  
+  local <- pov_race_local %>% 
+    filter(locality == "Richmond city") 
+  
+  
+  # Create data visualizations that compare poverty rate by race over time. Data is
+  # faceted based on race/ethnicity category. The Shiny app should have interactivity 
+  # so that users can explore the data that is presented on the visualization. In addition,
+  # the latest rate value should be shown on the visualization as a label. 
+  
+  ggplot(state,
+         aes(
+           x = year,
+           y = rate,
+           color = race_ordered,
+           group = race_ordered)) +
+    geom_line(linewidth = 1) +  # Make lines thicker
+    geom_point(size = 2) +      # Make points larger
+    facet_wrap(~race_ordered, ncol = 3) +  # Use 3 columns instead of 1 row
+    scale_color_manual(values = race_colors) +
+    # Better x-axis formatting - show fewer years
+    scale_x_discrete(breaks = seq(min(state$year), max(state$year), by = 5)) +  
+    # Format y-axis as percentage
+    scale_y_continuous(labels = scales::percent_format(), 
+                       limits = c(0, NA)) +  # Start y-axis at 0
+    # Improve theme elements
+    theme_minimal() +
+    theme(
+      strip.text = element_text(size = 12, face = "bold"),  # Larger facet titles
+      legend.position = "none",  # Remove redundant legend
+      panel.spacing = unit(1.5, "lines"),  # More space between facets
+      panel.grid.minor = element_blank(),  # Remove minor gridlines
+      plot.title = element_text(size = 14, face = "bold"),  # Larger plot title
+      plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+      axis.title = element_blank()# More margin space
+    ) 
+  
   ggplot(cbsa,
          aes(
            x = year,
@@ -1066,17 +1140,7 @@ ggplot(cbsa,
       axis.title = element_blank()# More margin space
     ) 
   
-  # Calculate the mean rate for each race (you can use max() or last() instead)
-  local_summary <- local %>%
-    group_by(race) %>%
-    summarize(mean_rate = mean(rate, na.rm = TRUE)) %>%
-    arrange(desc(mean_rate))  # Arrange in descending order
   
-  # Create a new factor with levels ordered by the mean rate
-  local <- local %>%
-    mutate(race_ordered = factor(race, levels = local_summary$race))
-  
-  # Now use race_ordered for faceting
   ggplot(local,
          aes(
            x = year,
@@ -1101,15 +1165,25 @@ ggplot(cbsa,
       panel.grid.minor = element_blank(),  # Remove minor gridlines
       plot.title = element_text(size = 14, face = "bold"),  # Larger plot title
       plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
-      axis.title = element_blank()# More margin space
+      axis.title = element_blank()# More margin spac
     ) 
+  
+  # Create a Shiny app based on the above. Each geographic level should be its own tab
+  # State, CBSA, and locality. The filter should be present on the CBSA and locality plot
+  # as a drop down filter.
   
   ## ---- Poverty Rate by Age - Table B17001 -----
   
+  # The following creates visualizations based on Table B17001 from the ACS, which
+  # will be incorporated into a Shiny app.The visualizations will provide a line graph 
+  # showing the poverty rates of different households based on age group from 
+  # 2010 to the latest year.
+  
+  # Read in the latest data. Use the here package in the Shiny app.
+  
   poverty_age <- read_rds("data/poverty_age.rds")
 
-  va_lookup <- read_csv("data/va-cbsa-locality-lookup.csv") %>% 
-    mutate(fips = as.character(fips_full))
+  # Aggregate data based on geographic levels and calculate the poverty rate.
   
   pov_age_state <- poverty_age %>% 
     group_by(year, age) %>% 
@@ -1119,7 +1193,6 @@ ggplot(cbsa,
     ungroup()
   
   pov_age_cbsa <- poverty_age %>% 
-    left_join(va_lookup, by = "fips") %>% 
     group_by(year, age, cbsa_title) %>% 
     summarise(estimate = sum(estimate),
               totalage = sum(totalage)) %>% 
@@ -1128,49 +1201,16 @@ ggplot(cbsa,
   
   pov_age_local <- poverty_age  
   
-  # Set placeholders for filters by year.
+  # Set placeholders for filters by year. The state visualization will not 
+  # have any filters.
   
-  state <- pov_age_state %>%
-    mutate(age_group = case_when(
-      age %in% c("17 years and under", "18 to 24 years") ~ "Youth (under 25)",
-      age %in% c("25 to 34 years", "35 to 44 years") ~ "Young Adults (25-44)",
-      TRUE ~ "Middle-Aged and Older (45+)"
-    )) %>%
-    # Convert to factor with specific level order
-    mutate(age_group = factor(age_group, levels = c(
-      "Youth (under 25)", 
-      "Young Adults (25-44)", 
-      "Middle-Aged and Older (45+)"
-    )))
-  
+  state <- pov_age_state 
 
   cbsa <- pov_age_cbsa %>% 
-    filter(cbsa_title == "Richmond, VA") %>%
-    mutate(age_group = case_when(
-      age %in% c("17 years and under", "18 to 24 years") ~ "Youth (under 25)",
-      age %in% c("25 to 34 years", "35 to 44 years") ~ "Young Adults (25-44)",
-      TRUE ~ "Middle-Aged and Older (45+)"
-    )) %>%
-    # Convert to factor with specific level order
-    mutate(age_group = factor(age_group, levels = c(
-      "Youth (under 25)", 
-      "Young Adults (25-44)", 
-      "Middle-Aged and Older (45+)"
-    )))
+    filter(cbsa_title == "Richmond, VA") 
   
   local <- pov_age_local %>% 
-    filter(locality == "Richmond city") %>%
-    mutate(age_group = case_when(
-      age %in% c("17 years and under", "18 to 24 years") ~ "Youth (under 25)",
-      age %in% c("25 to 34 years", "35 to 44 years") ~ "Young Adults (25-44)",
-      TRUE ~ "Middle-Aged and Older (45+)"
-    )) %>%
-    # Convert to factor with specific level order
-    mutate(age_group = factor(age_group, levels = c(
-      "Youth (under 25)", 
-      "Young Adults (25-44)", 
-      "Middle-Aged and Older (45+)"
-    )))
+    filter(locality == "Richmond city")
   
   # Create data visualizations that compare poverty rate by age over time.
   
@@ -1302,24 +1342,40 @@ ggplot(cbsa,
   
   # Create shiny apps for the plots above where each plot/geographic-level has its
   # own tab. Then filters should exist for the CBSA and locality plots, so that you can
-  # filter for individual CBSA or locality.
+  # filter for individual CBSA or locality. There should be interactivity that allows
+  # users to interact with the data and see what the value of each point is. There should
+  # be labels at the end of each line to show the latest value.
   
 ## ---- Housing Type by Tenure - Table B25032 -----
   
+  # The following creates visualizations based on Table B17001 from the ACS, which
+  # will be incorporated into a Shiny app.The visualizations will provide a line graph 
+  # showing the poverty rates of different households based on age group from 
+  # 2010 to the latest year.
+  
+  # Read in the latest data. Use the here package in the Shiny app.
+  
   b25032 <- read_rds("data/b25032.rds")
+  
+  # Aggregate data based on geographic levels and calculate what percentage the value is out of 
+  # the tenure group ('percent') and then the geographic level ('percent total')
   
   state_housing <- b25032 %>% 
     group_by(year, tenure, type) %>% 
     summarise(estimate = sum(estimate)) %>% 
     group_by(year,tenure) %>% 
-    mutate(percent = estimate/sum(estimate))
+    mutate(percent = estimate/sum(estimate)) %>% 
+    group_by(year) %>% 
+    mutate(percent_total = estimate/sum(estimate))
   
   
   cbsa_housing <- b25032 %>% 
     group_by(year, cbsa_title, tenure, type) %>% 
     summarise(estimate = sum(estimate)) %>% 
     group_by(year, cbsa_title, tenure) %>% 
-    mutate(percent = estimate/sum(estimate))
+    mutate(percent = estimate/sum(estimate)) %>% 
+    group_by(year, cbsa_title) %>% 
+    mutate(percent_total = estimate/sum(estimate))
 
   local_housing <- b25032  %>% 
     group_by(year, name_long, tenure) %>% 

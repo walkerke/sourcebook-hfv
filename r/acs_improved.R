@@ -1074,7 +1074,7 @@ b25106_data <- b25106_raw %>%
 write_rds(b25106_data, "data/b25106_data.rds")
 
 ################################################################################
-# SECTION 14: Table B19013 - Median Household Income by Race
+# ----- SECTION 14: Table B19013 - Median Household Income by Race ----
 ################################################################################
 
 # Create object for tables
@@ -1216,7 +1216,7 @@ b25032_data <- b25032_prep %>%
 write_rds(b25032_data, "data/b25032.rds")
 
 ################################################################################
-# SECTION 16: Table B25127 - Tenure by Year Structure Built by Units in Structure
+# ----- SECTION 16: Table B25127 - Tenure by Year Structure Built by Units in Structure-----
 ################################################################################
 
 # Get variables for Table B25127
@@ -1247,7 +1247,7 @@ b25127_data <- b25127_raw %>%
 write_rds(b25127_data, "data/b25127.rds")
 
 ################################################################################
-# SECTION 17: Table B25042 - Tenure by Bedrooms
+# ----- SECTION 17: Table B25042 - Tenure by Bedrooms -----
 ################################################################################
 
 # Get variables for Table B25042

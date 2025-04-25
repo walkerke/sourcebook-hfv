@@ -601,6 +601,9 @@ output_b17001 <- map_dfr(b17001, function(tb){
   yearly_data
 })
 
+va_lookup <- read_csv("data/va-cbsa-locality-lookup.csv") %>% 
+  mutate(fips = as.character(fips_full))
+
 output_b17001_clean <- output_b17001 %>%
   mutate(across(.fns = ~str_remove_all(.x, ", Virginia"))) |> 
   mutate(race = case_when(
@@ -632,23 +635,36 @@ output_b17001_clean <- output_b17001 %>%
   group_by(year, locality, fips, race) |> 
   mutate(totalrace = sum(estimate)) |> 
   group_by(year, locality, fips, age) |> 
-  mutate(totalage = sum(estimate)) 
+  mutate(totalage = sum(estimate)) %>% 
+  left_join(va_lookup, by = "fips")
+
 
 
 rate_race <- output_b17001_clean |> 
   filter(poverty == "Income in the past 12 months below poverty level") |> 
-  group_by(year, locality, fips, race, totalrace) |> 
+  group_by(year, locality, cbsa_title, fips, race, totalrace) |> 
   summarise(estimate = sum(estimate)) |> 
   ungroup() |> 
-  mutate(rate = estimate/totalrace)
+  mutate(rate = estimate/totalrace) 
 
 
 rate_age <- output_b17001_clean  |> 
   filter(poverty == "Income in the past 12 months below poverty level") |> 
-  group_by(year, locality, fips, age, totalage) |> 
+  group_by(year, cbsa_title, locality, fips, age, totalage) |> 
   summarise(estimate = sum(estimate)) |> 
   ungroup() |> 
-  mutate(rate = estimate/totalage)
+  mutate(rate = estimate/totalage) %>%
+  mutate(age_group = case_when(
+    age %in% c("17 years and under", "18 to 24 years") ~ "Youth (under 25)",
+    age %in% c("25 to 34 years", "35 to 44 years") ~ "Young Adults (25-44)",
+    TRUE ~ "Middle-Aged and Older (45+)"
+  )) %>%
+  # Convert to factor with specific level order
+  mutate(age_group = factor(age_group, levels = c(
+    "Youth (under 25)", 
+    "Young Adults (25-44)", 
+    "Middle-Aged and Older (45+)"
+  )))
 
 
 # Write all data to rds.
@@ -1637,6 +1653,86 @@ b25014_data <- b25014_data %>%
 
 write_rds(b25014_data, "data/b25014.rds")
 
+## ---- Table B19013B-H ---- 
 
+
+# Create object for tables
+b19013 <- paste0("B19013", LETTERS[2:9])
+
+# Get variables for Table B19013
+b19013_defns <- load_variables(2023, "acs5") %>%
+  filter(str_sub(name, end = 7) %in% b19013) %>%
+  filter(str_detect(name, "PR") == FALSE)
+
+# Function to extract race from concept
+concept_to_race <- function(x) {
+  x %>%
+    str_remove_all("Median Household Income in the Past 12 Months \\(in 2023 Inflation-Adjusted Dollars\\)") %>%
+    str_extract("(?<=\\().*(?=\\))") %>%
+    str_trim()
+}
+
+# Clean B19013 variables
+b19013_cleaned <- b19013_defns %>%
+  mutate(race = concept_to_race(concept)) %>%
+  separate(label, c("estimate", "medhhincome"), sep = "!!") %>%
+  select(variable = name, medhhincome, race) %>%
+  mutate(
+    across(.fns = ~replace_na(.x, "All")),
+    across(.fns = ~str_remove_all(.x, ":")),
+    across(.fns = ~str_remove_all(.x, "Householder")),
+    across(.fns = ~str_remove_all(.x, "Alone"))
+  )
+
+# Function to get B19013 data for different tables and geographies
+get_b19013_data <- function(tables, geography, state = NULL) {
+  map_dfr(tables, function(tb) {
+    map_dfr(years, function(yr) {
+      args <- list(
+        geography = geography,
+        table = tb,
+        year = yr
+      )
+      
+      if (!is.null(state)) {
+        args$state <- state
+      }
+      
+      do.call(get_acs, args) %>%
+        left_join(b19013_cleaned, by = "variable") %>%
+        mutate(year = yr)
+    })
+  })
+}
+
+# Get B19013 data for different geographies
+output_b19013_locality <- get_b19013_data(b19013, "county", "VA") %>%
+  select(variable, year, locality = NAME, fips = GEOID, race, medhhincome, estimate, moe) %>% 
+  mutate(locality = str_remove(locality, ", Virginia"))
+
+
+output_b19013_cbsa <- get_b19013_data(b19013, "metropolitan statistical area/micropolitan statistical area") %>%
+  select(variable, year, CBSA = NAME, fips = GEOID, race, medhhincome, estimate, moe) %>%
+  filter(str_detect(CBSA, "VA"))
+
+output_b19013_state <- get_b19013_data(b19013, "state") %>%
+  select(variable, year, state = NAME, fips = GEOID, race, medhhincome, estimate, moe)
+
+# Function to join with CPI and adjust for inflation
+process_median_income <- function(data) {
+  data %>%
+    left_join(cpi, by = "year") %>%
+    mutate(adjusted = ((current_index/index) * estimate))
+}
+
+# Process data for all geographies
+output_b19013_locality <- process_median_income(output_b19013_locality)
+output_b19013_cbsa <- process_median_income(output_b19013_cbsa)
+output_b19013_state <- process_median_income(output_b19013_state)
+
+# Save data
+write_rds(output_b19013_locality, "data/b19013_locality.rds")
+write_rds(output_b19013_cbsa, "data/b19013_cbsa.rds")
+write_rds(output_b19013_state, "data/b19013_state.rds")
 
 
