@@ -1368,7 +1368,6 @@ ggplot(local,
     group_by(year) %>% 
     mutate(percent_total = estimate/sum(estimate))
   
-  
   cbsa_housing <- b25032 %>% 
     group_by(year, cbsa_title, tenure, type) %>% 
     summarise(estimate = sum(estimate)) %>% 
@@ -1379,8 +1378,12 @@ ggplot(local,
 
   local_housing <- b25032  %>% 
     group_by(year, name_long, tenure) %>% 
-    mutate(percent = estimate/sum(estimate))
+    mutate(percent = estimate/sum(estimate)) %>% 
+    group_by(year, name_long) %>% 
+    mutate(percent_total = estimate/sum(estimate))
   
+  # Set placeholders for filters by year and location. The state visualization will
+  # not have any filters for location.
   
   state <- state_housing %>% 
     filter(year == 2023)
@@ -1393,11 +1396,13 @@ ggplot(local,
     filter(year == 2023,
            name_long == "Richmond City")
   
+  # Create a variable for the title text.
   
-  title_text <- "<b><span style=' color:#011E41'>Homeowner</span></b> and 
-<b><span style=' color:#40C0C0'>renter</span></b> households by housing type"
+  title_text <- "Distribution of housing type"
   
   
+  # Create data visualizations based on the above that set style and form
+  # for the Shiny app.
   
 ggplot(state, 
        aes(x = reorder(type, -percent), 
@@ -1475,7 +1480,8 @@ ggplot(state,
           strip.text = element_blank())
   
   # Create shiny apps for the above three plots where each visualization is its own tab. The filter should
-  # allow users to change between different years for each plot. 
+  # allow users to change between different years for each plot and different locations. There should be interactivity
+  # that allows users to hover over a bar to see the actual value.
   
   ## ---- Housing Type by Tenure and Year Built ----- ##
   
@@ -1527,12 +1533,9 @@ ggplot(state,
     filter(year == 2023, 
            name_long == "Richmond City")
   
-  
-  
   # Create visualizations showing the distribution of housing type and tenure by
   # structure type.
   
-
   ggplot(state,
          aes(x = yrbuilt,
              y = estimate,
@@ -1592,15 +1595,22 @@ ggplot(state,
 # filter for geography in the CBSA and locality tabs. There is no need for a year filter in this shiny
 # app.
   
-  
 ## ---- Tenure by Bedrooms: Table B25042 ----
+  
+  # The following creates visualizations based on Table B25042 from the ACS, which
+  # will be incorporated into a Shiny app. The visualizations will provide a comparative 
+  # bar chart that shows the distribution of housing units based on bedroom count and tenure.
+  
+  # Read in the latest data. Use the here package in the Shiny app.
   
 b25042 <- read_rds("data/b25042.rds")
   
-# Define the desired order for bedrooms
+# Define the desired order for bedrooms in the visualization.
 bedroom_order <- c("No bedroom", "1 bedroom", "2 bedrooms", "3 bedrooms", 
                      "4 bedrooms", "5 or more bedrooms")
-  
+
+# Aggregate the data based on geographic level and re-level the br variable
+# based on the desired order.
   
 state_bed <- b25042 |> 
   group_by(year, tenure, br) |> 
@@ -1617,6 +1627,9 @@ local_bed <- b25042 |>
   summarise(estimate = sum(estimate)) %>%
   mutate(br = factor(br, levels = bedroom_order))
 
+# Set placeholders for filters by year and location. The state visualization will
+# not have any filters for location.
+
 state <- state_bed |> 
   filter(year == 2023)
 
@@ -1630,7 +1643,9 @@ local <- local_bed |>
          name_long == "Richmond City")
 
 
-# Create the plot with reordered factors
+# Create visualizations for the basis of the Shiny apps. These visualizations set the 
+# style and form of the plots. The hdatools package needs to be called to utilize the 
+# scale_fill_hfv() function. tidyverse package should be called at the beginning.
 
 ggplot(state,
        aes(
@@ -1693,11 +1708,20 @@ ggplot(local,
 
 # Create shiny apps for the above where each plot geography is its own tab. There should only be a
 # filter for geography in the CBSA and locality tabs. The year filter should be present across all tabs.
+# There should be interactivity that allows users to hover over a bar to see the actual value of the bar.
 
 ## ---- Overcrowding ----
 
+# The following creates visualizations based on Table B25042 from the ACS, which
+# will be incorporated into a Shiny app. The visualizations will provide a comparative 
+# bar chart that shows the distribution of housing units based on bedroom count and tenure.
+
+# Read in the latest data. Use the here package in the Shiny app.
 
 b25014 <- read_rds("data/b25014.rds")
+
+# Aggregate the data based on geographic level and then calculate what percentage of households
+# are overcrowded or overcrowded based on the year and tenure.
 
 state_crowd <- b25014 |> 
   group_by(year, tenure,overcrowded) |> 
@@ -1823,7 +1847,72 @@ ggplot(local,
 
 ## ---- Homeownership Rate: Table B25003 ----- ##
 
+
+# Create an interconnected visualization of a map and a line graph showing the homeownership rate of Virginia.
+# The map is interactive so that when users click on a jurisdiction, the line graph will adjust to show the
+# homeownership rate in that jurisdiction over time.
+
+library(tigris)
+library(mapgl)
+library(leaflet)
+library(sf)
+library(tidyverse)
+
+states <- states()
+
+
 b25003_state <- read_rds("data/b25003_state.rds") |> 
-  mutate(ho_rate = est_owner/est_all)
+  mutate(ho_rate = est_owner/est_all)%>% 
+  mutate(GEOID = fips)
+
+b25003_state_geo <- states %>% 
+  left_join(b25003_state, by = "GEOID") %>%
+  filter(year == 2023) %>% 
+  # Transform to WGS84
+  st_transform(4326) %>%
+  # Simplify geometry to reduce size
+  st_simplify(dTolerance = 0.01) 
+# Create color palette
+pal <- colorBin(
+  palette = "Blues",
+  domain = b25003_state_geo$ho_rate,
+  bins = seq(0.5, 0.8, by = 0.05)
+)
+
+leaflet(b25003_state_geo) %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addPolygons(
+    fillColor = ~pal(ho_rate),
+    weight = 1,
+    opacity = 1,
+    color = "#333333",
+    fillOpacity = 0.7,
+    highlight = highlightOptions(
+      weight = 2,
+      color = "#666",
+      fillOpacity = 0.7,
+      bringToFront = TRUE
+    ))
+
+
+,
+    label = ~paste0(NAME, ": ", round(ho_rate * 100, 1), "% homeownership rate"),
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "3px 8px"),
+      textsize = "15px",
+      direction = "auto"
+    )
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    pal = pal,
+    values = ~ho_rate,
+    title = "Homeownership Rate",
+    opacity = 0.7,
+    labFormat = labelFormat(suffix = "%", transform = function(x) 100 * x)
+  )
+
+
+
 
 
