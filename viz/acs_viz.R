@@ -1845,7 +1845,7 @@ ggplot(local,
 # Create shiny apps for the above where each plot geography is its own tab. There should only be a
 # filter for geography in the CBSA and locality tabs. The year filter should be present across all tabs.
 
-## ---- Homeownership Rate: Table B25003 ----- ##
+## ----- Homeownership Rate: Table B25003 -----
 
 
 # Create an interconnected visualization of a map and a line graph showing the homeownership rate of Virginia.
@@ -1853,32 +1853,40 @@ ggplot(local,
 # homeownership rate in that jurisdiction over time.
 
 library(tigris)
-library(mapgl)
 library(leaflet)
 library(sf)
-library(tidyverse)
+library(dplyr)
 
-states <- states()
+# Only load packages you actually need
+# mapgl and tidyverse are loaded but not used directly
 
+# Get only the 50 states plus DC
+options(tigris_use_cache = TRUE)  # Cache tigris data for faster future use
+states_us <- states(cb = TRUE) %>%  # Use cb=TRUE for cartographic boundaries (smaller)
+  filter(STUSPS %in% c(state.abb, "DC")) # 50 states + DC
 
-b25003_state <- read_rds("data/b25003_state.rds") |> 
-  mutate(ho_rate = est_owner/est_all)%>% 
-  mutate(GEOID = fips)
+# Read and prepare data
+b25003_state <- readRDS("data/b25003_state.rds") %>% 
+  mutate(ho_rate = est_owner/est_all,
+         GEOID = fips) %>%
+  filter(year == 2023)
 
-b25003_state_geo <- states %>% 
-  left_join(b25003_state, by = "GEOID") %>%
-  filter(year == 2023) %>% 
+# More efficient join
+b25003_state_geo <- left_join(states_us, b25003_state, by = "GEOID") %>%
   # Transform to WGS84
   st_transform(4326) %>%
-  # Simplify geometry to reduce size
-  st_simplify(dTolerance = 0.01) 
+  # More careful simplification based on area
+  st_simplify(preserveTopology = TRUE, 
+              dTolerance = 0.001 * sqrt(as.numeric(st_area(.)))) 
+
 # Create color palette
 pal <- colorBin(
   palette = "Blues",
   domain = b25003_state_geo$ho_rate,
-  bins = seq(0.5, 0.8, by = 0.05)
+  bins = seq(0.3, 0.8, by = 0.05)
 )
 
+# Create map with better positioning for US
 leaflet(b25003_state_geo) %>%
   addProviderTiles(providers$CartoDB.Positron) %>%
   addPolygons(
@@ -1892,8 +1900,26 @@ leaflet(b25003_state_geo) %>%
       color = "#666",
       fillOpacity = 0.7,
       bringToFront = TRUE
-    ))
-
+    ),
+    # Add tooltips for better interactivity
+    label = ~paste0(NAME, ": ", round(ho_rate * 100, 1), "% homeownership"),
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "3px 8px"),
+      textsize = "12px",
+      direction = "auto"
+    )
+  ) %>%
+  # Set view to focus on continental US
+  setView(lng = -98.5795, lat = 39.8283, zoom = 4) %>%
+  # Add legend
+  addLegend(
+    position = "bottomright",
+    pal = pal,
+    values = ~ho_rate,
+    title = "Homeownership Rate",
+    opacity = 0.7,
+    labFormat = labelFormat(suffix = "%", transform = function(x) x * 100)
+  )
 
 ,
     label = ~paste0(NAME, ": ", round(ho_rate * 100, 1), "% homeownership rate"),
