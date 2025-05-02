@@ -12,31 +12,31 @@ library(glue)
 
 # Set paths for locality data
 
-var_hist_locality <- "data/var_2014-2021_locality.xlsx"
+var_hist_locality <- "data/raw/var_2014-2021_locality.xlsx"
 
-var_2022Q1_locality <- "data/var_2022-Q1_locality.xlsx"
+var_2022Q1_locality <- "data/raw/var_2022-Q1_locality.xlsx"
 
 # Set paths for MSA data
 
-var_hist_msa <- "data/var_2014-2021_msa.xlsx"
+var_hist_msa <- "data/raw/var_2014-2021_msa.xlsx"
 
-var_2022Q1_msa <- "data/var_2022-Q1_msa.xlsx"
+var_2022Q1_msa <- "data/raw/var_2022-Q1_msa.xlsx"
 
 # Set paths for combined data
 
-var_2022Q2 <- "data/var_2022-Q2.xlsx"
+var_2022Q2 <- "data/raw/var_2022-Q2.xlsx"
 
-var_2022Q3 <- "data/var_2022-Q3.xlsx"
+var_2022Q3 <- "data/raw/var_2022-Q3.xlsx"
 
-var_2022Q4 <- "data/var_2022-Q4.xlsx"
+var_2022Q4 <- "data/raw/var_2022-Q4.xlsx"
 
-var_2023Q1 <- "data/var_2023-Q1.xlsx"
+var_2023Q1 <- "data/raw/var_2023-Q1.xlsx"
 
-var_2023Q2 <- "data/var_2023-Q2.xlsx"
+var_2023Q2 <- "data/raw/var_2023-Q2.xlsx"
 
-var_2023Q3 <- "data/var_2023-Q3.xlsx"
+var_2023Q3 <- "data/raw/var_2023-Q3.xlsx"
 
-var_2023Q4 <- "data/var_2023-Q4.xlsx"
+var_2023Q4 <- "data/raw/var_2023-Q4.xlsx"
 
 # Bring in locality data
 
@@ -200,4 +200,4 @@ full_data <- bind_rows(locality_data, msa_data) %>%
 
 # Save home sales data
 
-write_rds(full_data, "data/home-sales.rds")
+write_rds(full_data, "data/xls_csv/home-sales.rds")
