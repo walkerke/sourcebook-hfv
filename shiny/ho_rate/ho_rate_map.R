@@ -3,13 +3,14 @@ library(mapgl)
 library(tigris)
 library(sf)
 library(tidycensus)
+library(shiny)
+library(bslib)
 
 # Get simplified state boundaries
-states_us <- states(cb = TRUE, resolution = "20m") %>%  # Use lowest resolution
-  filter(STUSPS %in% c(state.abb, "DC")) %>%  # 50 states + DC
+va_counties <- counties(state = "VA") %>%  # Use lowest resolution
   select(GEOID, NAME) # Keep only necessary columns
 
-write_rds(states_us, "data/state_shape.rds")
+write_rds(va_counties, "data/va_co_shape.rds")
 
 # Read and prepare data more efficiently
 b25003_state <- readRDS("data/b25003_state.rds") |>  
@@ -71,11 +72,11 @@ va_homeownership_clean <- va_homeownership |>
                   "<br><b>Jurisdiction Homeownership Rate: </b>", round(local_rate, 1), "%")))
 
 
-image_path <- "/shiny/www/hfv_rgb_logo.png"
+
 
 
 # Create the map with improved color gradation
-maplibre(
+map <- maplibre(
   style = carto_style("positron"),
   bounds = va_homeownership_clean
 ) |> 
@@ -94,37 +95,17 @@ maplibre(
                    fill_color = "darkblue",
                    fill_opacity = 1
                  )) |> 
+                  add_line_layer(
+                    id = "county",
+                    source = va_counties,
+                    line_color = "lightgrey"
+                  ) |> 
   add_legend(
-    "Homeownership Rate in Virginia",
+    "Homeownership Rate in Virginia (%)",
     values = c(0, 20, 40, 60, 80, 100),
     colors =  c("#440154", "#414487", "#2A788E", "#22A884", "#7AD151", "#FDE725")) |> 
   add_geocoder_control(position = "top-right", placeholder = "Enter an address") 
 
-
-# Create your map
-map <- maplibre(
-  style = carto_style("positron"),
-  bounds = va_homeownership_clean
-) |> 
-  add_fill_layer(id = "tract_data",
-                 source = va_homeownership_clean,
-                 fill_color = interpolate(
-                   column = "ho_rate",
-                   values = c(0, 20, 40, 60, 80, 100),
-                   stops = c("#440154", "#414487", "#2A788E", "#22A884", "#7AD151", "#FDE725"),
-                   na_color = "grey"
-                 ),
-                 fill_opacity = 0.8,
-                 tooltip = "custom_tooltip",
-                 hover_options = list(
-                   fill_color = "darkblue",
-                   fill_opacity = 1
-                 )) |> 
-  add_legend(
-    "Homeownership Rate in Virginia",
-    values = c(0, 20, 40, 60, 80, 100),
-    colors = c("#440154", "#414487", "#2A788E", "#22A884", "#7AD151", "#FDE725")) |> 
-  add_geocoder_control(position = "top-right", placeholder = "Enter an address")
 
 # For use in a Shiny app
 # In your ui.R or app.R file:
@@ -136,20 +117,40 @@ ui <- fluidPage(
     # Logo overlay
     tags$div(
       style = "position: absolute; bottom: 10px; left: 10px; z-index: 999;",
-      tags$img(src = "/shiny/www/hfv_rgb_logo.png", height = "auto", width = "150px")
+      tags$img(src = "hfv_rgb_logo.png", height = "auto", width = "150px")
     )
+  ),
+  # Debugging section
+  tags$div(
+    style = "background-color: #f8f9fa; padding: 10px; margin-top: 20px; border-radius: 5px;",
+    h4("Debugging Information"),
+    verbatimTextOutput("debug_info")
   )
 )
 
 # In your server.R or app.R:
+# Add this to your server function to debug the image path issue
 server <- function(input, output) {
   output$map_id <- renderMaplibre({
     map
+  })
+  
+  # Add this debugging output
+  output$debug_info <- renderText({
+    # List files in the www directory to see what's available
+    www_files <- list.files("www", recursive = TRUE)
+    
+    # Check if our specific file exists
+    logo_exists <- "hfv_rgb_logo.png" %in% www_files
+    
+    # Return debugging information
+    paste(
+      "Files in www directory:", paste(www_files, collapse = ", "),
+      "\nLogo file exists:", logo_exists,
+      "\nWorking directory:", getwd()
+    )
   })
 }
 
 
 shinyApp(ui = ui, server = server)
-
-
-
