@@ -5,8 +5,126 @@ library(scales)
 library(ggiraph)     # For interactive plots
 library(shinyjs)     # For UI interactions
 
-ui <- fluidPage(
-  # Include CSS styles
+# Using dashboardPage instead of fluidPage for better sidebar functionality
+ui <- navbarPage(
+  title = NULL,
+  id = "navbar",
+  theme = "css/custom.css",  # Optional custom CSS file
+  
+  # Main page with sidebar layout
+  tabPanel(
+    "Home",
+    # Use sidebarLayout for proper sidebar functionality
+    sidebarLayout(
+      # SIDEBAR PANEL
+      sidebarPanel(
+        width = 3,
+        # Add logos to the top of the sidebar
+        div(class = "logo-container",
+            img(src = "var_logo_new.png", height = "60px", class = "main-logo"),
+            img(src = "hfv_rgb_logo.png", height = "60px", class = "secondary-logo")
+        ),
+        # Title now in sidebar
+        h2("Homes Sales in Virginia", class = "sidebar-title"),
+        
+        # Filter inputs
+        selectInput(
+          inputId = "geo_type",
+          label = "Select Geography",
+          choices = c("State", "MSA", "Locality"),
+          selected = "State"
+        ),
+        selectInput(
+          inputId = "geo_name",
+          label = "Name",
+          choices = NULL
+        )
+      ),
+      
+      # MAIN PANEL
+      mainPanel(
+        width = 9,
+        # Info boxes
+        fluidRow(
+          column(width = 3, style = "padding: 0 7px;",
+                 uiOutput("dateBox")),
+          column(width = 3, style = "padding: 0 7px;",
+                 uiOutput("salesBox")),
+          column(width = 3, style = "padding: 0 7px;",
+                 uiOutput("priceBox")),
+          column(width = 3, style = "padding: 0 7px;",
+                 uiOutput("daysBox"))
+        ),
+        
+        # Top row with price chart
+        div(class = "top-row-container",
+            fluidRow(
+              div(
+                class = "custom-box",
+                div(
+                  class = "box-header",
+                  h3(class = "box-title", "Median Sales Price by Quarter"),
+                  div(style = "position: absolute; top: 10px; right: 10px;",
+                      downloadButton("downloadSalesPDF", "PDF", class = "btn-xs download-btn"),
+                      downloadButton("downloadSalesPNG", "PNG", class = "btn-xs download-btn")
+                  )
+                ),
+                div(
+                  class = "box-body chart-container",  # Added chart-container class
+                  girafeOutput("price")  # Removed fixed height
+                )
+              )
+            )
+        ),
+        
+        # Bottom row with two charts
+        div(class = "bottom-row-container",
+            fluidRow(
+              column(
+                width = 6,
+                div(
+                  class = "custom-box",
+                  div(
+                    class = "box-header",
+                    h3(class = "box-title", "Homes Sold by Quarter"),
+                    div(style = "position: absolute; top: 10px; right: 10px;",
+                        downloadButton("downloadPricePDF", "PDF", class = "btn-xs download-btn"),
+                        downloadButton("downloadPricePNG", "PNG", class = "btn-xs download-btn")
+                    )
+                  ),
+                  div(
+                    class = "box-body chart-container",  # Added chart-container class 
+                    girafeOutput("sales")  # Removed fixed height
+                  )
+                )
+              ),
+              column(
+                width = 6,
+                div(
+                  class = "custom-box",
+                  div(
+                    class = "box-header",
+                    h3(class = "box-title", "Median Days on Market by Quarter"),
+                    div(style = "position: absolute; top: 10px; right: 10px;",
+                        downloadButton("downloadDaysPDF", "PDF", class = "btn-xs download-btn"),
+                        downloadButton("downloadDaysPNG", "PNG", class = "btn-xs download-btn")
+                    )
+                  ),
+                  div(
+                    class = "box-body chart-container",  # Added chart-container class
+                    girafeOutput("days")  # Removed fixed height
+                  )
+                )
+              )
+            )
+        )
+      )
+    )
+  )
+)
+
+# Add custom CSS to handle responsive charts and sidebar styling
+ui <- tagList(
   tags$head(
     tags$style(HTML("
       /* Variables for consistent colors */
@@ -26,24 +144,36 @@ ui <- fluidPage(
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
       }
       
-      /* Header styling */
-      .main-header {
-        background-color: var(--accent);
+      /* Title in sidebar */
+      .sidebar-title {
         color: white;
-        padding: 15px 20px;
-        font-size: 24px;
-        font-weight: 500;
-        letter-spacing: 0.5px;
         margin-bottom: 20px;
-        border-bottom: 3px solid var(--primary);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding-bottom: 10px;
       }
       
-      /* Sidebar styling */
-      .sidebar {
+      /* Sidebar styling - improved */
+      .well {
         background-color: #2c3e50;
         padding: 20px;
         border-radius: 8px;
         color: var(--light-text);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        border: none;
+      }
+      
+      /* Logo styling */
+      .logo-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+      }
+      .main-logo, .secondary-logo {
+        max-width: 45%;
+        height: auto;
       }
       
       /* Input styling */
@@ -60,9 +190,17 @@ ui <- fluidPage(
       }
       .control-label {
         font-weight: 600;
-        color: var(--dark-text);
+        color: var(--light-text);
         margin-bottom: 8px;
         margin-top: 12px;
+      }
+      
+      /* Chart container - NEW */
+      .chart-container {
+        position: relative;
+        width: 100%;
+        min-height: 300px;
+        overflow: hidden;
       }
       
       /* Info box styling - FIXED HEIGHT */
@@ -162,11 +300,12 @@ ui <- fluidPage(
       .girafe svg {
         width: 100% !important;
         height: auto !important; /* Let height adjust automatically */
+        min-height: 300px; /* Minimum height for better visibility */
       }
       
-      /* Make plots respect container boundaries */
+      /* Ensure charts scale with container */
       .box-body .girafe {
-        overflow: visible; /* Allow visualization to be fully visible */
+        overflow: visible;
         display: block;
       }
       
@@ -178,11 +317,12 @@ ui <- fluidPage(
         margin-top: 20px;
       }
       
-      /* Responsive adjustments */
-      @media (max-width: 992px) {
+      /* Responsive adjustments - IMPROVED */
+      @media (max-width: 1200px) {
         .col-sm-3 {
           width: 50%;
           float: left;
+          margin-bottom: 10px;
         }
       }
       @media (max-width: 768px) {
@@ -190,116 +330,48 @@ ui <- fluidPage(
           width: 100%;
           float: none;
         }
+        .sidebar {
+          margin-bottom: 20px;
+        }
+        .chart-container {
+          min-height: 250px;
+        }
+        .girafe svg {
+          min-height: 250px;
+        }
       }
     "))
   ),
-  
-  # Custom header
-  div(class = "main-header", "Homes Sales in Virginia"),
-  
-  # Main layout
-  fluidRow(
-    # Sidebar
-    column(
-      width = 3,
-      div(
-        class = "sidebar",
-        selectInput(
-          inputId = "geo_type",
-          label = "Select Geography",
-          choices = c("State", "MSA", "Locality"),
-          selected = "State"
-        ),
-        selectInput(
-          inputId = "geo_name",
-          label = "Name",
-          choices = NULL
-        )
-      )
-    ),
-    
-    # Main content area
-    column(
-      width = 9,
-      # Info boxes
-      fluidRow(
-        column(width = 3, style = "padding: 0 7px;",
-               uiOutput("dateBox")),
-        column(width = 3, style = "padding: 0 7px;",
-               uiOutput("salesBox")),
-        column(width = 3, style = "padding: 0 7px;",
-               uiOutput("priceBox")),
-        column(width = 3, style = "padding: 0 7px;",
-               uiOutput("daysBox"))
-      ),
-      
-      # Top row with price chart
-      div(class = "top-row-container",
-          fluidRow(
-            div(
-              class = "custom-box",
-              div(
-                class = "box-header",
-                h3(class = "box-title", "Median Sales Price by Quarter"),
-                div(style = "position: absolute; top: 10px; right: 10px;",
-                    downloadButton("downloadSalesPDF", "PDF", class = "btn-xs download-btn"),
-                    downloadButton("downloadSalesPNG", "PNG", class = "btn-xs download-btn")
-                )
-              ),
-              div(
-                class = "box-body",
-                girafeOutput("price")  # Removed fixed height
-              )
-            )
-          )
-      ),
-      
-      # Bottom row with two charts
-      div(class = "bottom-row-container",
-          fluidRow(
-            column(
-              width = 6,
-              div(
-                class = "custom-box",
-                div(
-                  class = "box-header",
-                  h3(class = "box-title", "Homes Sold by Quarter"),
-                  div(style = "position: absolute; top: 10px; right: 10px;",
-                      downloadButton("downloadPricePDF", "PDF", class = "btn-xs download-btn"),
-                      downloadButton("downloadPricePNG", "PNG", class = "btn-xs download-btn")
-                  )
-                ),
-                div(
-                  class = "box-body",
-                  girafeOutput("sales")  # Removed fixed height
-                )
-              )
-            ),
-            column(
-              width = 6,
-              div(
-                class = "custom-box",
-                div(
-                  class = "box-header",
-                  h3(class = "box-title", "Median Days on Market by Quarter"),
-                  div(style = "position: absolute; top: 10px; right: 10px;",
-                      downloadButton("downloadDaysPDF", "PDF", class = "btn-xs download-btn"),
-                      downloadButton("downloadDaysPNG", "PNG", class = "btn-xs download-btn")
-                  )
-                ),
-                div(
-                  class = "box-body",
-                  girafeOutput("days")  # Removed fixed height
-                )
-              )
-            )
-          )
-      )
-    )
-  )
+  ui
 )
 
 server <- function(input, output, session) {
+  # Define absolute path to the logo for server-side operations
+  logo_path <- normalizePath(file.path(getwd(), "..", "www", "hfv_rgb_logo.png"))
+  
+  # Copy the logo to the app directory for direct access
+  source_logo <- file.path(getwd(), "..", "www", "hfv_rgb_logo.png")
+  dest_logo <- file.path(getwd(), "www")
+  
+  # Create www directory in the app folder if it doesn't exist
+  if (!dir.exists(dest_logo)) {
+    dir.create(dest_logo, recursive = TRUE)
+  }
+  
+  # Copy the logo file
+  dest_logo <- file.path(dest_logo, "hfv_rgb_logo.png")
+  if (!file.exists(dest_logo)) {
+    file.copy(source_logo, dest_logo)
+  }
+  
+  # Now logo can be referenced simply as "hfv_rgb_logo.png" in the UI
+  
+  # Function to add logos to ggplot objects
+  # Now just returns the original plot without adding logos
+  add_logos_to_plot <- function(plot) {
+    # Simply return the original plot without modification
+    return(plot)
+  }
   # Load data
   var_data <- read_rds(here("data", "rds", "home-sales.rds"))
   
@@ -415,7 +487,7 @@ server <- function(input, output, session) {
     )
   })
   
-  # Modified girafe outputs for responsive sizing
+  # Modified girafe outputs for improved responsive sizing
   output$sales <- renderGirafe({
     req(dashboard_data())
     
@@ -441,16 +513,21 @@ server <- function(input, output, session) {
         axis.text.x = element_text(angle = 45, hjust = 1),
         panel.grid.major.x = element_blank(),
         legend.position = "none",
-        plot.margin = margin(10, 10, 20, 10) # More margin at bottom
+        plot.margin = margin(10, 10, 20, 10), # Standard margins (no extra for logos)
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA)
       ) 
+    
+    # Add logos to the plot
+    gg <- add_logos_to_plot(gg)
     
     # Improved girafe settings with better responsiveness
     girafe(
       ggobj = gg,
-      width_svg = 10,  # Wider SVG
-      height_svg = 6,  # Taller SVG
+      width_svg = 8,  # Adjust SVG dimensions for better scaling
+      height_svg = 5,
       options = list(
-        opts_sizing(rescale = TRUE, width = 0.95), # Slightly smaller than container
+        opts_sizing(rescale = TRUE), # Let it resize fully with container
         opts_toolbar(position = "topright", saveaspng = FALSE),
         opts_hover(css = "fill:orange;"),
         opts_selection(type = "multiple", css = "fill:red;stroke:gray;")
@@ -484,17 +561,22 @@ server <- function(input, output, session) {
         axis.text.x = element_text(angle = 45, hjust = 1),
         panel.grid.major.x = element_blank(),
         legend.position = "none",
-        plot.margin = margin(10, 10, 20, 10) # More margin at bottom
+        plot.margin = margin(10, 10, 20, 10), # Standard margins
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA)
       ) +
       scale_y_continuous(labels = dollar_format())
+    
+    # Add logos to the plot
+    gg <- add_logos_to_plot(gg)
     
     # Improved girafe settings with better responsiveness
     girafe(
       ggobj = gg,
-      width_svg = 10,  # Wider SVG
-      height_svg = 6,  # Taller SVG
+      width_svg = 8,  # Adjust SVG dimensions for better scaling
+      height_svg = 5,
       options = list(
-        opts_sizing(rescale = TRUE, width = 0.95), # Slightly smaller than container
+        opts_sizing(rescale = TRUE), # Let it resize fully with container
         opts_toolbar(position = "topright", saveaspng = FALSE),
         opts_hover(css = "fill:orange;"),
         opts_selection(type = "multiple", css = "fill:red;stroke:gray;")
@@ -528,16 +610,21 @@ server <- function(input, output, session) {
         axis.text.x = element_text(angle = 45, hjust = 1),
         panel.grid.major.x = element_blank(),
         legend.position = "none",
-        plot.margin = margin(10, 10, 20, 10) # More margin at bottom
+        plot.margin = margin(10, 10, 20, 10), # Standard margins
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA)
       ) 
+    
+    # Add logos to the plot
+    gg <- add_logos_to_plot(gg)
     
     # Improved girafe settings with better responsiveness
     girafe(
       ggobj = gg,
-      width_svg = 10,  # Wider SVG
-      height_svg = 6,  # Taller SVG
+      width_svg = 8,  # Adjust SVG dimensions for better scaling
+      height_svg = 5,
       options = list(
-        opts_sizing(rescale = TRUE, width = 0.95), # Slightly smaller than container
+        opts_sizing(rescale = TRUE), # Let it resize fully with container
         opts_toolbar(position = "topright", saveaspng = FALSE),
         opts_hover(css = "fill:orange;"),
         opts_selection(type = "multiple", css = "fill:red;stroke:gray;")
@@ -550,35 +637,47 @@ server <- function(input, output, session) {
     paste0(input$geo_type, "-", gsub(" ", "_", input$geo_name), "-")
   })
   
-  # Non-interactive plots for downloads - no changes here
+  # Non-interactive plots for downloads - updated to include logos
   get_sales_plot_for_download <- function() {
     req(dashboard_data())
-    ggplot(dashboard_data(), aes(x = quarter, y = units)) +
+    gg <- ggplot(dashboard_data(), aes(x = quarter, y = units)) +
       geom_col(fill = "#3c6382", alpha = 0.8) +
       theme_minimal() +
       labs(title = paste("Units Sold by Quarter -", input$geo_name),
            x = "Quarter",
            y = "Units",
            caption = paste("Data for", input$geo_type, "-", input$geo_name)) +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      theme(
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.margin = margin(30, 20, 20, 10) # More margin for logos
+      )
+    
+    # Add logos to the plot
+    add_logos_to_plot(gg)
   }
   
   get_price_plot_for_download <- function() {
     req(dashboard_data())
-    ggplot(dashboard_data(), aes(x = quarter, y = med_price)) +
+    gg <- ggplot(dashboard_data(), aes(x = quarter, y = med_price)) +
       geom_col(fill = "#3c6382", alpha = 0.8) +
       theme_minimal() +
       labs(title = paste("Median Sales Price by Quarter -", input$geo_name),
            x = "Quarter", 
            y = "Median Price ($)",
            caption = paste("Data for", input$geo_type, "-", input$geo_name)) +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+      theme(
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.margin = margin(30, 20, 20, 10) # More margin for logos
+      ) +
       scale_y_continuous(labels = dollar_format())
+    
+    # Add logos to the plot
+    add_logos_to_plot(gg)
   }
   
   get_days_plot_for_download <- function() {
     req(dashboard_data())
-    ggplot(dashboard_data(), aes(x = quarter, y = med_dom)) +
+    gg <- ggplot(dashboard_data(), aes(x = quarter, y = med_dom)) +
       geom_col(fill = "#3c6382", alpha = 0.8) +
       geom_point(size = 3, color = "#e74c3c") +
       theme_minimal() +
@@ -586,7 +685,13 @@ server <- function(input, output, session) {
            x = "Quarter",
            y = "Days",
            caption = paste("Data for", input$geo_type, "-", input$geo_name)) +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      theme(
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.margin = margin(30, 20, 20, 10) # More margin for logos
+      )
+    
+    # Add logos to the plot
+    add_logos_to_plot(gg)
   }
   
   # Download handlers - no changes
@@ -631,7 +736,7 @@ server <- function(input, output, session) {
       paste0(get_filename_prefix(), "days_on_market.pdf")
     },
     content = function(file) {
-      ggsave(file, plot = get_days_plot_for_download(), device = "pdf", width = 10, height = 5)
+      ggsave(file, plot = get_days_plot_for_download(), device = "pdf", width = 8, height = 5)
     }
   )
   
@@ -640,7 +745,7 @@ server <- function(input, output, session) {
       paste0(get_filename_prefix(), "days_on_market.png")
     },
     content = function(file) {
-      ggsave(file, plot = get_days_plot_for_download(), device = "png", width = 10, height = 5, dpi = 300)
+      ggsave(file, plot = get_days_plot_for_download(), device = "png", width = 8, height = 5, dpi = 300)
     }
   )
 }
