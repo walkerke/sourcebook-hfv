@@ -2,7 +2,6 @@ library(shiny)
 library(tidyverse)
 library(here)
 library(scales)
-library(ggiraph)     # For interactive plots
 library(shinyjs)     # For UI interactions
 
 # Using dashboardPage instead of fluidPage for better sidebar functionality
@@ -70,8 +69,8 @@ ui <- navbarPage(
                   )
                 ),
                 div(
-                  class = "box-body chart-container",  # Added chart-container class
-                  girafeOutput("price")  # Removed fixed height
+                  class = "box-body chart-container",
+                  plotOutput("price", height = "auto")  # Changed to plotOutput with auto height
                 )
               )
             )
@@ -93,8 +92,8 @@ ui <- navbarPage(
                     )
                   ),
                   div(
-                    class = "box-body chart-container",  # Added chart-container class 
-                    girafeOutput("sales")  # Removed fixed height
+                    class = "box-body chart-container",
+                    plotOutput("sales", height = "auto")  # Changed to plotOutput with auto height
                   )
                 )
               ),
@@ -111,8 +110,8 @@ ui <- navbarPage(
                     )
                   ),
                   div(
-                    class = "box-body chart-container",  # Added chart-container class
-                    girafeOutput("days")  # Removed fixed height
+                    class = "box-body chart-container",
+                    plotOutput("days", height = "auto")  # Changed to plotOutput with auto height
                   )
                 )
               )
@@ -195,12 +194,19 @@ ui <- tagList(
         margin-top: 12px;
       }
       
-      /* Chart container - NEW */
+      /* Chart container - UPDATED for static plots */
       .chart-container {
         position: relative;
         width: 100%;
         min-height: 300px;
         overflow: hidden;
+      }
+      
+      /* Static plot styling - NEW */
+      .chart-container .shiny-plot-output {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 300px;
       }
       
       /* Info box styling - FIXED HEIGHT */
@@ -293,22 +299,6 @@ ui <- tagList(
       .bg-teal {background-color: #259591 !important;}
       .bg-navy {background-color: #011E41 !important;}
       
-      /* Plot styling - IMPROVED */
-      .girafe {
-        width: 100% !important;
-      }
-      .girafe svg {
-        width: 100% !important;
-        height: auto !important; /* Let height adjust automatically */
-        min-height: 300px; /* Minimum height for better visibility */
-      }
-      
-      /* Ensure charts scale with container */
-      .box-body .girafe {
-        overflow: visible;
-        display: block;
-      }
-      
       /* Spacing */
       .top-row-container {
         margin-bottom: 20px;
@@ -324,7 +314,14 @@ ui <- tagList(
           float: left;
           margin-bottom: 10px;
         }
+        .chart-container {
+          min-height: 280px;
+        }
+        .chart-container .shiny-plot-output {
+          min-height: 280px;
+        }
       }
+      
       @media (max-width: 768px) {
         .col-sm-3 {
           width: 100%;
@@ -336,8 +333,18 @@ ui <- tagList(
         .chart-container {
           min-height: 250px;
         }
-        .girafe svg {
+        .chart-container .shiny-plot-output {
           min-height: 250px;
+        }
+      }
+      
+      /* Additional responsive adjustments for very small screens */
+      @media (max-width: 480px) {
+        .chart-container {
+          min-height: 200px;
+        }
+        .chart-container .shiny-plot-output {
+          min-height: 200px;
         }
       }
     "))
@@ -364,14 +371,12 @@ server <- function(input, output, session) {
     file.copy(source_logo, dest_logo)
   }
   
-  # Now logo can be referenced simply as "hfv_rgb_logo.png" in the UI
-  
   # Function to add logos to ggplot objects
-  # Now just returns the original plot without adding logos
   add_logos_to_plot <- function(plot) {
     # Simply return the original plot without modification
     return(plot)
   }
+  
   # Load data
   var_data <- read_rds(here("data", "rds", "home-sales.rds"))
   
@@ -487,24 +492,13 @@ server <- function(input, output, session) {
     )
   })
   
-  # Modified girafe outputs for improved responsive sizing
-  output$sales <- renderGirafe({
+  # Changed from girafeOutput to standard plotOutput for static plots
+  output$sales <- renderPlot({
     req(dashboard_data())
     
-    # Create a data frame with tooltips for each bar
-    plot_data <- dashboard_data() %>%
-      mutate(
-        tooltip = paste0(
-          "Quarter: ", quarter, 
-          "<br>Units Sold: ", format(units, big.mark = ",")))
-    
     # Create the ggplot object
-    gg <- ggplot(plot_data, aes(x = quarter, y = units)) +
-      geom_col_interactive(
-        aes(tooltip = tooltip, 
-            data_id = quarter,
-            fill = units), 
-        alpha = 0.9) + 
+    gg <- ggplot(dashboard_data(), aes(x = quarter, y = units)) +
+      geom_col(aes(fill = units), alpha = 0.9) + 
       scale_fill_gradient(low = "#d0cee9", high = "#8B85CA") +
       scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 4)]) + 
       theme_minimal() +
@@ -513,46 +507,25 @@ server <- function(input, output, session) {
         axis.text.x = element_text(angle = 45, hjust = 1),
         panel.grid.major.x = element_blank(),
         legend.position = "none",
-        plot.margin = margin(10, 10, 20, 10), # Standard margins (no extra for logos)
+        plot.margin = margin(10, 10, 20, 10),
         plot.background = element_rect(fill = "transparent", color = NA),
         panel.background = element_rect(fill = "transparent", color = NA)
       ) 
     
     # Add logos to the plot
-    gg <- add_logos_to_plot(gg)
-    
-    # Improved girafe settings with better responsiveness
-    girafe(
-      ggobj = gg,
-      width_svg = 8,  # Adjust SVG dimensions for better scaling
-      height_svg = 5,
-      options = list(
-        opts_sizing(rescale = TRUE), # Let it resize fully with container
-        opts_toolbar(position = "topright", saveaspng = FALSE),
-        opts_hover(css = "fill:orange;"),
-        opts_selection(type = "multiple", css = "fill:red;stroke:gray;")
-      )
-    )
+    add_logos_to_plot(gg)
+  }, 
+  # Make plot responsive to container size
+  height = function() {
+    session$clientData$output_sales_width * 0.6  # Aspect ratio of 0.6
   })
   
-  output$price <- renderGirafe({
+  output$price <- renderPlot({
     req(dashboard_data())
     
-    # Create a data frame with tooltips
-    plot_data <- dashboard_data() %>%
-      mutate(tooltip = paste0("Quarter: ", quarter, 
-                              "<br>Median Price: ", 
-                              dollar_format()(med_price)))
-    
     # Create the ggplot object
-    gg <- ggplot(plot_data, 
-                 aes(
-                   x = quarter, 
-                   y = med_price)) +
-      geom_col_interactive(
-        aes(tooltip = tooltip, 
-            data_id = quarter,
-            fill = med_price), alpha = 0.8) +
+    gg <- ggplot(dashboard_data(), aes(x = quarter, y = med_price)) +
+      geom_col(aes(fill = med_price), alpha = 0.8) +
       scale_fill_gradient(low = "#a7d4d3", high = "#259591") +
       scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 4)]) +
       theme_minimal() +
@@ -561,47 +534,26 @@ server <- function(input, output, session) {
         axis.text.x = element_text(angle = 45, hjust = 1),
         panel.grid.major.x = element_blank(),
         legend.position = "none",
-        plot.margin = margin(10, 10, 20, 10), # Standard margins
+        plot.margin = margin(10, 10, 20, 10),
         plot.background = element_rect(fill = "transparent", color = NA),
         panel.background = element_rect(fill = "transparent", color = NA)
       ) +
       scale_y_continuous(labels = dollar_format())
     
     # Add logos to the plot
-    gg <- add_logos_to_plot(gg)
-    
-    # Improved girafe settings with better responsiveness
-    girafe(
-      ggobj = gg,
-      width_svg = 8,  # Adjust SVG dimensions for better scaling
-      height_svg = 5,
-      options = list(
-        opts_sizing(rescale = TRUE), # Let it resize fully with container
-        opts_toolbar(position = "topright", saveaspng = FALSE),
-        opts_hover(css = "fill:orange;"),
-        opts_selection(type = "multiple", css = "fill:red;stroke:gray;")
-      )
-    )
+    add_logos_to_plot(gg)
+  },
+  # Make plot responsive to container size
+  height = function() {
+    session$clientData$output_price_width * 0.5  # Aspect ratio of 0.5 for wider charts
   })
   
-  output$days <- renderGirafe({
+  output$days <- renderPlot({
     req(dashboard_data())
     
-    # Create a data frame with tooltips
-    plot_data <- dashboard_data() %>%
-      mutate(tooltip = paste0("Quarter: ", quarter, 
-                              "<br>Median Days on Market: ", med_dom))
-    
     # Create the ggplot object
-    gg <- ggplot(plot_data, 
-                 aes(
-                   x = quarter, 
-                   y = med_dom)) +
-      geom_col_interactive(
-        aes(tooltip = tooltip,
-            data_id = quarter, 
-            fill = med_dom), 
-        alpha = 0.8) +
+    gg <- ggplot(dashboard_data(), aes(x = quarter, y = med_dom)) +
+      geom_col(aes(fill = med_dom), alpha = 0.8) +
       scale_fill_gradient(low = "#99a5b3", high = "#011E41") +
       scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 4)]) +
       theme_minimal() +
@@ -610,26 +562,17 @@ server <- function(input, output, session) {
         axis.text.x = element_text(angle = 45, hjust = 1),
         panel.grid.major.x = element_blank(),
         legend.position = "none",
-        plot.margin = margin(10, 10, 20, 10), # Standard margins
+        plot.margin = margin(10, 10, 20, 10),
         plot.background = element_rect(fill = "transparent", color = NA),
         panel.background = element_rect(fill = "transparent", color = NA)
       ) 
     
     # Add logos to the plot
-    gg <- add_logos_to_plot(gg)
-    
-    # Improved girafe settings with better responsiveness
-    girafe(
-      ggobj = gg,
-      width_svg = 8,  # Adjust SVG dimensions for better scaling
-      height_svg = 5,
-      options = list(
-        opts_sizing(rescale = TRUE), # Let it resize fully with container
-        opts_toolbar(position = "topright", saveaspng = FALSE),
-        opts_hover(css = "fill:orange;"),
-        opts_selection(type = "multiple", css = "fill:red;stroke:gray;")
-      )
-    )
+    add_logos_to_plot(gg)
+  },
+  # Make plot responsive to container size
+  height = function() {
+    session$clientData$output_days_width * 0.6  # Aspect ratio of 0.6
   })
   
   # Generate filename prefix for downloads based on current selection
