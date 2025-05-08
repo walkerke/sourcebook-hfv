@@ -3,6 +3,7 @@ library(tidyverse)
 library(here)
 library(scales)
 library(shinyjs)     # For UI interactions
+library(plotly)      # For interactive plots
 
 # Using dashboardPage instead of fluidPage for better sidebar functionality
 ui <- navbarPage(
@@ -13,79 +14,58 @@ ui <- navbarPage(
   # Main page with sidebar layout
   tabPanel(
     "Home",
-    # Use sidebarLayout for proper sidebar functionality
-    sidebarLayout(
-      # SIDEBAR PANEL
-      sidebarPanel(
-        width = 3,
-        # Add logos to the top of the sidebar
-        div(class = "logo-container",
-            img(src = "var_logo_new.png", height = "60px", class = "main-logo"),
-            img(src = "hfv_rgb_logo.png", height = "60px", class = "secondary-logo")
-        ),
-        # Title now in sidebar
-        h2("Homes Sales in Virginia", class = "sidebar-title"),
-        
-        # Filter inputs
-        selectInput(
-          inputId = "geo_type",
-          label = "Select Geography",
-          choices = c("State", "MSA", "Locality"),
-          selected = "State"
-        ),
-        selectInput(
-          inputId = "geo_name",
-          label = "Name",
-          choices = NULL
-        )
-      ),
-      
-      # MAIN PANEL
-      mainPanel(
-        width = 9,
-        # Info boxes
-        fluidRow(
-          column(width = 3, style = "padding: 0 7px;",
-                 uiOutput("dateBox")),
-          column(width = 3, style = "padding: 0 7px;",
-                 uiOutput("salesBox")),
-          column(width = 3, style = "padding: 0 7px;",
-                 uiOutput("priceBox")),
-          column(width = 3, style = "padding: 0 7px;",
-                 uiOutput("daysBox"))
+    # Create a vertical layout for the sidebars
+    verticalLayout(
+      # Main content with sidebar layout
+      sidebarLayout(
+        # SIDEBAR PANEL
+        sidebarPanel(
+          width = 3,
+          # Logos in a white card at the top of the sidebar
+          div(class = "sidebar-logo-card",
+              img(src = "var_logo_new.png", width = "120px", height = "50px", class = "main-logo"),
+              img(src = "hfv_rgb_logo.png", width = "120px", height = "50px", class = "secondary-logo")
+          ),
+          # Title now in sidebar
+          h2("Homes Sales in Virginia", class = "sidebar-title"),
+          
+          # Filter inputs
+          selectInput(
+            inputId = "geo_type",
+            label = "Select Geography",
+            choices = c("State", "MSA", "Locality"),
+            selected = "State"
+          ),
+          selectInput(
+            inputId = "geo_name",
+            label = "Name",
+            choices = NULL
+          )
         ),
         
-        # Top row with price chart
-        div(class = "top-row-container",
-            fluidRow(
-              div(
-                class = "custom-box",
-                div(
-                  class = "box-header",
-                  h3(class = "box-title", "Median Sales Price by Quarter"),
-                  div(style = "position: absolute; top: 10px; right: 10px;",
-                      downloadButton("downloadSalesPDF", "PDF", class = "btn-xs download-btn"),
-                      downloadButton("downloadSalesPNG", "PNG", class = "btn-xs download-btn")
-                  )
-                ),
-                div(
-                  class = "box-body chart-container",
-                  plotOutput("price", height = "auto")  # Changed to plotOutput with auto height
-                )
-              )
-            )
-        ),
-        
-        # Bottom row with two charts
-        div(class = "bottom-row-container",
-            fluidRow(
-              column(
-                width = 6,
+        # MAIN PANEL
+        mainPanel(
+          width = 9,
+          # Info boxes
+          fluidRow(
+            column(width = 3, style = "padding: 0 7px;",
+                   uiOutput("dateBox")),
+            column(width = 3, style = "padding: 0 7px;",
+                   uiOutput("salesBox")),
+            column(width = 3, style = "padding: 0 7px;",
+                   uiOutput("priceBox")),
+            column(width = 3, style = "padding: 0 7px;",
+                   uiOutput("daysBox"))
+          ),
+          
+          # Top row with price chart
+          div(class = "top-row-container",
+              fluidRow(
                 div(
                   class = "custom-box",
                   div(
                     class = "box-header",
-                    h3(class = "box-title", "Homes Sold by Quarter"),
+                    h3(class = "box-title", "Median Sales Price by Quarter"),
                     div(style = "position: absolute; top: 10px; right: 10px;",
                         downloadButton("downloadPricePDF", "PDF", class = "btn-xs download-btn"),
                         downloadButton("downloadPricePNG", "PNG", class = "btn-xs download-btn")
@@ -93,29 +73,53 @@ ui <- navbarPage(
                   ),
                   div(
                     class = "box-body chart-container",
-                    plotOutput("sales", height = "auto")  # Changed to plotOutput with auto height
-                  )
-                )
-              ),
-              column(
-                width = 6,
-                div(
-                  class = "custom-box",
-                  div(
-                    class = "box-header",
-                    h3(class = "box-title", "Median Days on Market by Quarter"),
-                    div(style = "position: absolute; top: 10px; right: 10px;",
-                        downloadButton("downloadDaysPDF", "PDF", class = "btn-xs download-btn"),
-                        downloadButton("downloadDaysPNG", "PNG", class = "btn-xs download-btn")
-                    )
-                  ),
-                  div(
-                    class = "box-body chart-container",
-                    plotOutput("days", height = "auto")  # Changed to plotOutput with auto height
+                    plotlyOutput("price", height = "auto")  # Changed to plotlyOutput
                   )
                 )
               )
-            )
+          ),
+          
+          # Bottom row with two charts
+          div(class = "bottom-row-container",
+              fluidRow(
+                column(
+                  width = 6,
+                  div(
+                    class = "custom-box",
+                    div(
+                      class = "box-header",
+                      h3(class = "box-title", "Homes Sold by Quarter"),
+                      div(style = "position: absolute; top: 10px; right: 10px;",
+                          downloadButton("downloadSalesPDF", "PDF", class = "btn-xs download-btn"),
+                          downloadButton("downloadSalesPNG", "PNG", class = "btn-xs download-btn")
+                      )
+                    ),
+                    div(
+                      class = "box-body chart-container",
+                      plotlyOutput("sales", height = "auto")  # Changed to plotlyOutput
+                    )
+                  )
+                ),
+                column(
+                  width = 6,
+                  div(
+                    class = "custom-box",
+                    div(
+                      class = "box-header",
+                      h3(class = "box-title", "Median Days on Market by Quarter"),
+                      div(style = "position: absolute; top: 10px; right: 10px;",
+                          downloadButton("downloadDaysPDF", "PDF", class = "btn-xs download-btn"),
+                          downloadButton("downloadDaysPNG", "PNG", class = "btn-xs download-btn")
+                      )
+                    ),
+                    div(
+                      class = "box-body chart-container",
+                      plotlyOutput("days", height = "auto")  # Changed to plotlyOutput
+                    )
+                  )
+                )
+              )
+          )
         )
       )
     )
@@ -143,6 +147,22 @@ ui <- tagList(
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
       }
       
+      /* Logo sidebar styling */
+      .logo-sidebar {
+        width: 100%;
+        background-color: white;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      
+
+      
+      .main-logo, .secondary-logo {
+        max-width: 45%;
+        height: auto;
+      }
+      
       /* Title in sidebar */
       .sidebar-title {
         color: white;
@@ -159,20 +179,6 @@ ui <- tagList(
         color: var(--light-text);
         box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         border: none;
-      }
-      
-      /* Logo styling */
-      .logo-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-      }
-      .main-logo, .secondary-logo {
-        max-width: 45%;
-        height: auto;
       }
       
       /* Input styling */
@@ -347,6 +353,28 @@ ui <- tagList(
           min-height: 200px;
         }
       }
+      
+      /* Sidebar logo card styling */
+      .sidebar-logo-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 12px 8px 8px 8px;
+        margin-bottom: 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .sidebar-logo-card img {
+        margin-bottom: 6px;
+        background: white;
+        object-fit: contain;
+        border-radius: 4px;
+        box-shadow: none;
+      }
+      .sidebar-logo-card img:last-child {
+        margin-bottom: 0;
+      }
     "))
   ),
   ui
@@ -493,14 +521,22 @@ server <- function(input, output, session) {
   })
   
   # Changed from girafeOutput to standard plotOutput for static plots
-  output$sales <- renderPlot({
+  output$sales <- renderPlotly({
     req(dashboard_data())
-    
-    # Create the ggplot object
-    gg <- ggplot(dashboard_data(), aes(x = quarter, y = units)) +
-      geom_col(aes(fill = units), alpha = 0.9) + 
+
+    # Create the ggplot object with custom tooltip
+    gg <- ggplot(dashboard_data(), aes(
+      x = quarter,
+      y = units,
+      fill = units,
+      text = paste0(
+        "Quarter: ", quarter, "<br>",
+        "Units Sold: ", scales::comma(units)
+      )
+    )) +
+      geom_col(alpha = 0.9) +
       scale_fill_gradient(low = "#d0cee9", high = "#8B85CA") +
-      scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 4)]) + 
+      scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 4)]) +
       theme_minimal() +
       theme(
         axis.title = element_blank(),
@@ -510,22 +546,32 @@ server <- function(input, output, session) {
         plot.margin = margin(10, 10, 20, 10),
         plot.background = element_rect(fill = "transparent", color = NA),
         panel.background = element_rect(fill = "transparent", color = NA)
-      ) 
-    
-    # Add logos to the plot
-    add_logos_to_plot(gg)
-  }, 
-  # Make plot responsive to container size
-  height = function() {
-    session$clientData$output_sales_width * 0.6  # Aspect ratio of 0.6
+      )
+
+    # Convert to plotly and add custom tooltip
+    ggplotly(gg, tooltip = "text") %>%
+      config(gg, displayModeBar = FALSE) |> 
+      layout(
+        hovermode = "closest",
+        margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4),
+        autosize = TRUE
+      )
   })
   
-  output$price <- renderPlot({
+  output$price <- renderPlotly({
     req(dashboard_data())
     
-    # Create the ggplot object
-    gg <- ggplot(dashboard_data(), aes(x = quarter, y = med_price)) +
-      geom_col(aes(fill = med_price), alpha = 0.8) +
+    # Create the ggplot object with custom tooltip
+    gg <- ggplot(dashboard_data(), aes(
+      x = quarter,
+      y = med_price,
+      fill = med_price,
+      text = paste0(
+        "Quarter: ", quarter, "<br>",
+        "Median Sales Price: $", scales::comma(med_price)
+      )
+    )) +
+      geom_col(alpha = 0.8) +
       scale_fill_gradient(low = "#a7d4d3", high = "#259591") +
       scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 4)]) +
       theme_minimal() +
@@ -540,20 +586,29 @@ server <- function(input, output, session) {
       ) +
       scale_y_continuous(labels = dollar_format())
     
-    # Add logos to the plot
-    add_logos_to_plot(gg)
-  },
-  # Make plot responsive to container size
-  height = function() {
-    session$clientData$output_price_width * 0.5  # Aspect ratio of 0.5 for wider charts
+    # Convert to plotly and add custom tooltip
+    ggplotly(gg, tooltip = "text") %>%
+      layout(
+        hovermode = "closest",
+        margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4),
+        autosize = TRUE
+      )
   })
   
-  output$days <- renderPlot({
+  output$days <- renderPlotly({
     req(dashboard_data())
     
-    # Create the ggplot object
-    gg <- ggplot(dashboard_data(), aes(x = quarter, y = med_dom)) +
-      geom_col(aes(fill = med_dom), alpha = 0.8) +
+    # Create the ggplot object with custom tooltip
+    gg <- ggplot(dashboard_data(), aes(
+      x = quarter,
+      y = med_dom,
+      fill = med_dom,
+      text = paste0(
+        "Quarter: ", quarter, "<br>",
+        "Median Days on Market: ", med_dom
+      )
+    )) +
+      geom_col(alpha = 0.8) +
       scale_fill_gradient(low = "#99a5b3", high = "#011E41") +
       scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 4)]) +
       theme_minimal() +
@@ -565,14 +620,15 @@ server <- function(input, output, session) {
         plot.margin = margin(10, 10, 20, 10),
         plot.background = element_rect(fill = "transparent", color = NA),
         panel.background = element_rect(fill = "transparent", color = NA)
-      ) 
+      )
     
-    # Add logos to the plot
-    add_logos_to_plot(gg)
-  },
-  # Make plot responsive to container size
-  height = function() {
-    session$clientData$output_days_width * 0.6  # Aspect ratio of 0.6
+    # Convert to plotly and add custom tooltip
+    ggplotly(gg, tooltip = "text") %>%
+      layout(
+        hovermode = "closest",
+        margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4),
+        autosize = TRUE
+      )
   })
   
   # Generate filename prefix for downloads based on current selection
