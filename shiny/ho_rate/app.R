@@ -74,7 +74,7 @@ server <- function(input, output, session) {
     
     # Then load tract data
     withProgress(message = 'Loading map data...', value = 0, {
-      tract_map_data(read_rds(here("shiny", "ho_rate", "tract_map_data.rds")))
+      tract_map_data(read_rds(here("shiny", "ho_rate", "tract_data_simplified.rds")))
       incProgress(1)
     })
     

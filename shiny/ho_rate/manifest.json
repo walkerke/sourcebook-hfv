@@ -3993,13 +3993,16 @@
   },
   "files": {
     "app.R": {
-      "checksum": "21a1d7d94eae8585da9ac70ebb381c93"
+      "checksum": "edccc2f35a3173c61867eb7772917bf9"
     },
-    "tract_map_data.rds": {
-      "checksum": "6986a56310645cbc5fdc38e0270209dd"
+    "tract_data_simplified.rds": {
+      "checksum": "ef41b78e4af17e0719e15e0ed82f7595"
     },
     "trend_data.rds": {
       "checksum": "bf44cd2d4a2d53fec513d7b6bb2bda7a"
+    },
+    "va_co_shape.rds": {
+      "checksum": "f1714fe2623780795ff1142e2bc5a9c9"
     },
     "www/hfv_rgb_logo.png": {
       "checksum": "13df674a7d2f54a08b04f72d4e9a22a9"
