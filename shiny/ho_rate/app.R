@@ -70,7 +70,7 @@ server <- function(input, output, session) {
   # Load data in a separate reactive process to avoid blocking UI
   observe({
     # Load counties first (smaller file)
-    va_counties(read_rds(here("data", "va_co_shape.rds")))
+    va_counties(read_rds(here("shiny", "ho_rate", "va_co_shape.rds")))
     
     # Then load tract data
     withProgress(message = 'Loading map data...', value = 0, {
