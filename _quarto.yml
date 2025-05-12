@@ -37,8 +37,7 @@ book:
     - index.qmd 
     - part: "DEMOGRAPHICS"
       chapters:
-        - population.qmd # Total Population
-    #     - race.qmd # Race and Ethnicity
+#    #     - race.qmd # Race and Ethnicity
     #     - age.qmd # Age
     #     - hhtype.qmd # Household Type
     #     - hhsize.qmd # Household Size
