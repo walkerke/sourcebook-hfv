@@ -50,15 +50,15 @@ server <- function(input, output, session) {
   
   locality_data <- reactive({
     # Use here() package for file paths
-    read_rds(here("data", "b19013_locality.rds"))
+    read_rds(here("data", "rds", "b19013_locality.rds"))
   })
   
   cbsa_data <- reactive({
-    read_rds(here("data", "b19013_cbsa.rds"))
+    read_rds(here("data", "rds", "b19013_cbsa.rds"))
   })
   
   state_data <- reactive({
-    read_rds(here("data", "b19013_state.rds"))
+    read_rds(here("data", "rds", "b19013_state.rds"))
   })
   
   # Determine max y-axis value for consistency

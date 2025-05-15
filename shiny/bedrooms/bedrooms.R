@@ -4,6 +4,7 @@ library(shiny)
 library(tidyverse)
 library(here)
 library(plotly)
+library(hdatools)
 # You'll need to ensure the hdatools package is installed or replace scale_fill_hfv() with another color scale
 
 # Read in the data

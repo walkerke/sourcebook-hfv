@@ -13,7 +13,7 @@ library(shinyWidgets) # Added for toggle switch
 
 # Determine the app directory and set the data path
 # Option 1: Using here package (recommended)
-data_path <- here::here("data", "hh_type.rds")
+data_path <- here::here("data","rds", "hh_type.rds")
 
 # Load the data with error handling
 tryCatch({
