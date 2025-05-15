@@ -8,7 +8,7 @@ library(hdatools)  # Your custom package with theme_hfv and scale_fill_hfv
 library(shinyjs)   # Added for dynamic UI updates
 
 # Load the data using here package for path management
-hh_size <- readRDS(here("data", "hh_size.rds")) %>% 
+hh_size <- readRDS(here("data", "rds", "hh_size.rds")) %>% 
   mutate(tenure = case_when(
     tenure == "Owner" ~ "Homeowner",
     TRUE ~ tenure

@@ -7,7 +7,7 @@ library(plotly)
 # You'll need to ensure the hdatools package is installed or replace scale_fill_hfv() with another color scale
 
 # Read in the data
-b25042 <- read_rds(here("data/b25042.rds"))
+b25042 <- read_rds(here("data", "rds", "b25042.rds"))
 
 # Define the bedroom order
 bedroom_order <- c("No bedroom", "1 bedroom", "2 bedrooms", "3 bedrooms", 
