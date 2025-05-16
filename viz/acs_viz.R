@@ -538,7 +538,7 @@ ggplot(state,
 
 ## ---- Average Household Size -----
 
-avg_size <- read_rds("data/avg_hh_size.rds") %>% 
+avg_size <- read_rds("data/rds/avg_hh_size.rds") %>% 
   mutate(tenure = case_when(
     tenure == "Owner" ~ "Homeowner",
     TRUE ~ tenure

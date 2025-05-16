@@ -1,199 +1,452 @@
 library(shiny)
 library(tidyverse)
-library(scales)
+library(ggiraph)     # For interactive ggplots
+library(systemfonts) # For font_google
+library(here)        # For here() function in file paths
+library(grid)        # For grobs
+library(png)         # For reading PNG files
+library(bslib)       # For modern UI components
+library(cowplot)     # For adding logo to plots
 
-# Assuming theme_hfv is defined elsewhere in your code
-# If not, define it here or replace with another theme like theme_minimal()
-# For this example, I'll create a simple version
-theme_hfv <- function() {
-  theme_minimal() +
-    theme(
-      plot.title = element_text(face = "bold", size = 16),
-      plot.subtitle = element_text(size = 12, color = "gray50"),
-      axis.title = element_text(face = "bold"),
-      panel.grid.minor = element_blank(),
-      panel.border = element_rect(color = "gray80", fill = NA)
-    )
-}
+# Define HFV color palette
+hfv_colors <- list(
+  sky = "#40C0C0",
+  grass = "#259591",
+  lilac = "#8B85CA", 
+  shadow = "#011E41",
+  shadow_light = "#102C54",  # Lighter shade of shadow color
+  berry = "#B1005F",
+  desert = "#E0592A"
+)
 
-# UI
-ui <- fluidPage(
-  titlePanel("Average Household Size in Virginia"),
+# Create a Bootstrap theme
+hfv_theme <- bs_theme(
+  version = 5,                        # Use Bootstrap 5
+  bg = "#ffffff",                     # Background color
+  fg = "#333333",                     # Text color
+  primary = hfv_colors$sky,           # Primary color
+  secondary = hfv_colors$shadow,      # Secondary color
+  success = hfv_colors$grass,         # Success color
+  info = hfv_colors$lilac,            # Info color
+  warning = hfv_colors$desert,        # Warning color
+  danger = hfv_colors$berry,          # Danger color
+  base_font = font_google("Open Sans"),
+  heading_font = font_google("Poppins"),
+  font_scale = 0.8                    # Compact the text more for small window
+)
+
+# Define UI
+ui <- page_fluid(
+  theme = hfv_theme,
   
-  sidebarLayout(
-    sidebarPanel(
-      # Geography type selection
-      selectInput(
-        "geography_type", 
-        "Geography Type:",
-        choices = c("State" = "state", 
-                    "Locality" = "locality", 
-                    "Metro Area" = "cbsa"),
-        selected = "state"
-      ),
-      
-      # Geography name selection (will be dynamically updated)
-      uiOutput("geography_selector"),
-      
-      # Tenure selection (multi-select)
-      checkboxGroupInput(
-        "tenure", 
-        "Tenure:",
-        choices = c("All", "Homeowner", "Renter"),
-        selected = "All"
-      ),
-      
-      # Year range slider
-      uiOutput("year_range")
+  # Fixed dimensions and border
+  tags$div(
+    style = "width: 800px; height: 500px; margin: 0 auto; border: 2px solid #011E41; border-radius: 5px; overflow: hidden; padding: 10px;",
+    
+    # Header with logo and title
+    div(
+      style = "display: flex; align-items: center; margin-bottom: 10px; border-bottom: 2px solid #40C0C0; padding-bottom: 5px;",
+      img(src = "https://housingforwardva.org/wp-content/uploads/2025/05/HousingForward-VA-Logo-Files-Icon-One-Color-RGB.png", 
+          height = "30px", style = "margin-right: 10px;"),
+      h4("Average Household Size Over Time", style = "margin: 0; color: #011E41;")
     ),
     
-    mainPanel(
-      tabsetPanel(
-        tabPanel("Plot", plotOutput("household_plot", height = "500px")),
-        tabPanel("Data", DT::dataTableOutput("data_table")),
-        tabPanel("About", 
-                 h3("About this Data"),
-                 p("This interactive dashboard visualizes average household size in Virginia from 2010-2023."),
-                 p("Data is sourced from American Community Survey estimates and organized by:"),
-                 tags$ul(
-                   tags$li("Geography Type (state, locality, or metro area)"),
-                   tags$li("Specific geography selection"),
-                   tags$li("Housing tenure (all households, homeowners, or renters)")
-                 ),
-                 p("The visualization includes both the actual data points and a LOESS smoothing line to show trends over time.")
+    # Main content area with reduced margins
+    div(
+      style = "height: 435px; overflow: hidden;",
+      
+      # Use layout_columns for a compact layout
+      layout_columns(
+        col_widths = c(3, 9),
+        gap = "10px",
+        
+        # Sidebar Panel (more compact) - now with the lighter background color
+        card(
+          height = "435px",
+          padding = "8px",  # Reduced padding for compactness
+          margin = 0,
+          full_screen = FALSE,
+          style = "background-color: #E8EDF2;",  # Light shade derived from shadow color
+          
+          # Tenure selector
+          div(
+            style = "margin-bottom: 0;",
+            selectInput("tenure", "Tenure:", 
+                        choices = c("All", "Homeowner", "Renter"),
+                        selected = "All",
+                        width = "100%", 
+                        selectize = FALSE)
+          ),
+          
+          # Geography selectors with minimal height
+          div(
+            style = "margin-bottom: 0;",
+            conditionalPanel(
+              condition = "input.tabs == 'cbsa'",
+              selectInput("cbsa", "Metro Area:", choices = NULL, width = "100%", selectize = FALSE)
+            ),
+            conditionalPanel(
+              condition = "input.tabs == 'local'",
+              selectInput("locality", "Locality:", choices = NULL, width = "100%", selectize = FALSE)
+            )
+          ),
+          
+          # Year range checkbox (optional feature)
+          div(
+            style = "margin-bottom: 0;",
+            checkboxInput("show_all_years", "Show All Years", value = TRUE)
+          ),
+          conditionalPanel(
+            condition = "!input.show_all_years",
+            layout_columns(
+              col_widths = c(6, 6),
+              gap = "2px",
+              selectInput("year_start", "Start Year:", 
+                          choices = NULL, 
+                          selected = NULL, 
+                          width = "100%",
+                          selectize = FALSE),
+              selectInput("year_end", "End Year:", 
+                          choices = NULL, 
+                          selected = NULL, 
+                          width = "100%",
+                          selectize = FALSE)
+            )
+          ),
+          
+          # Show trend line option
+          div(
+            style = "margin-bottom: 0;",
+            checkboxInput("show_trend", "Show Trend Line", value = TRUE)
+          ),
+          
+          # Show point labels option
+          div(
+            style = "margin-bottom: 0;",
+            checkboxInput("show_labels", "Show Point Labels", value = FALSE)
+          ),
+          
+          # Horizontal line
+          hr(style = "margin: 3px 0;"),
+          
+          # Source information
+          div(
+            style = "font-size: 10px; color: #666; margin-top: 2px;",
+            p(
+              "Source: U.S. Census Bureau. American Community Survey 5-Year Estimates.",
+              style = "margin-bottom: 0;"
+            )
+          )
+        ),
+        
+        # Main Panel (tabs)
+        card(
+          height = "435px",
+          padding = 0,
+          margin = 0,
+          full_screen = FALSE,
+          
+          navset_tab(
+            id = "tabs",
+            nav_panel(
+              title = "State", 
+              value = "state",
+              padding = 5,
+              girafeOutput("state_plot", height = "390px")
+            ),
+            nav_panel(
+              title = "Metro Area", 
+              value = "cbsa",
+              padding = 5,
+              girafeOutput("cbsa_plot", height = "390px")
+            ),
+            nav_panel(
+              title = "Locality", 
+              value = "local",
+              padding = 5,
+              girafeOutput("local_plot", height = "390px")
+            )
+          )
         )
       )
     )
   )
 )
 
-# Server
+# Server function
 server <- function(input, output, session) {
-  
-  # Load data
-  data <- reactive({
-    # In real app, this would be: read_rds("data/avg_hh_size.rds")
-    # For demonstration, we'll simulate loading the data
-    req(file.exists("data/avg_hh_size.rds"))
-    
-    read_rds("data/avg_hh_size.rds") %>%
+  # Load the data
+  avg_size <- reactive({
+    read_rds(here("data", "rds", "avg_hh_size.rds")) %>% 
       mutate(tenure = case_when(
         tenure == "Owner" ~ "Homeowner",
         TRUE ~ tenure
       ))
   })
   
-  # Get unique geography names based on selected type
-  geo_names <- reactive({
-    req(data())
-    data() %>%
-      filter(geography == input$geography_type) %>%
+  # Get available years
+  year_list <- reactive({
+    sort(unique(avg_size()$year))
+  })
+  
+  # Get available localities
+  locality_list <- reactive({
+    avg_size() %>%
+      filter(geography == "locality") %>%
       pull(name) %>%
       unique() %>%
       sort()
   })
   
-  # Dynamic geography selector
-  output$geography_selector <- renderUI({
-    selectInput(
-      "geography_name",
-      "Select Geography:",
-      choices = geo_names(),
-      selected = if(input$geography_type == "state") "Virginia" else geo_names()[1]
-    )
-  })
-  
-  # Year range selector
-  output$year_range <- renderUI({
-    req(data())
-    years <- data() %>%
-      filter(geography == input$geography_type) %>%
-      pull(year) %>%
+  # Get available CBSAs
+  cbsa_list <- reactive({
+    avg_size() %>%
+      filter(geography == "cbsa") %>%
+      pull(name) %>%
       unique() %>%
       sort()
-    
-    sliderInput(
-      "years",
-      "Year Range:",
-      min = min(years),
-      max = max(years),
-      value = c(min(years), max(years)),
-      step = 1,
-      sep = ""
-    )
   })
   
-  # Filtered data
-  filtered_data <- reactive({
-    req(data(), input$geography_type, input$geography_name, input$tenure, input$years)
+  # Initialize dropdowns
+  observe({
+    # Years
+    years <- year_list()
+    updateSelectInput(session, "year_start", 
+                      choices = years,
+                      selected = min(years))
+    updateSelectInput(session, "year_end", 
+                      choices = years,
+                      selected = max(years))
     
-    data() %>%
-      filter(
-        geography == input$geography_type,
-        name == input$geography_name,
-        tenure %in% input$tenure,
-        year >= input$years[1],
-        year <= input$years[2]
-      )
+    # CBSAs
+    cbsas <- cbsa_list()
+    updateSelectInput(session, "cbsa", 
+                      choices = cbsas,
+                      selected = if("Richmond, VA" %in% cbsas) "Richmond, VA" else cbsas[1])
+    
+    # Localities
+    localities <- locality_list()
+    updateSelectInput(session, "locality", 
+                      choices = localities,
+                      selected = if("Richmond City" %in% localities) "Richmond City" else localities[1])
   })
   
-  # Generate plot
-  output$household_plot <- renderPlot({
-    req(filtered_data())
+  # Ensure end year is not earlier than start year
+  observe({
+    req(input$year_start, input$year_end)
+    if (!is.null(input$year_start) && !is.null(input$year_end)) {
+      if (as.numeric(input$year_start) > as.numeric(input$year_end)) {
+        updateSelectInput(session, "year_end", selected = input$year_start)
+      }
+    }
+  })
+  
+  # Filter data based on selections
+  filtered_state <- reactive({
+    req(input$tenure)
     
-    df <- filtered_data()
+    data <- avg_size() %>%
+      filter(geography == "state",
+             tenure == input$tenure)
     
-    # If no data matches the filters
-    if(nrow(df) == 0) {
-      return(ggplot() + 
-               annotate("text", x = 0.5, y = 0.5, label = "No data available for selected filters") + 
-               theme_void())
+    # Apply year filter if needed
+    if (!input$show_all_years) {
+      req(input$year_start, input$year_end)
+      data <- data %>%
+        filter(year >= input$year_start, 
+               year <= input$year_end)
     }
     
-    # Prepare data for labels
-    df_labels <- df %>%
-      group_by(tenure) %>%
+    # Calculate min/max points for labeling
+    data %>%
       mutate(label_point = year == min(year) | year == max(year) | 
-               estimate == max(estimate) | estimate == min(estimate)) %>%
-      filter(label_point)
-    
-    # Create plot
-    p <- ggplot(df, aes(x = year, y = estimate, color = tenure, group = tenure)) +
-      geom_line(linewidth = 1) +
-      geom_point(size = 3) +
-      geom_smooth(aes(fill = tenure), method = "loess", se = TRUE, alpha = 0.2) +
-      geom_text(data = df_labels,
-                aes(label = scales::number(estimate, accuracy = 0.01)),
-                vjust = -0.8, hjust = 0.5, size = 3.5) +
-      labs(
-        title = "Average Household Size Over Time",
-        subtitle = input$geography_name,
-        x = "Year",
-        y = "Average Household Size"
-      ) +
-      scale_y_continuous(
-        limits = function(x) c(min(x) * 0.93, max(x) * 1.07),
-        labels = scales::number_format(accuracy = 0.01)
-      ) +
-      scale_color_manual(values = c("All" = "#011E41", "Homeowner" = "#40C0C0", "Renter" = "#E57200")) +
-      scale_fill_manual(values = c("All" = "#011E41", "Homeowner" = "#40C0C0", "Renter" = "#E57200")) +
-      theme_hfv() +
-      theme(legend.position = "bottom", legend.title = element_blank())
-    
-    p
+               estimate == max(estimate) | estimate == min(estimate))
   })
   
-  # Data table
-  output$data_table <- DT::renderDataTable({
-    req(filtered_data())
+  filtered_cbsa <- reactive({
+    req(input$tenure, input$cbsa)
     
-    filtered_data() %>%
-      select(Year = year, Geography = name, Tenure = tenure, 
-             `Average Household Size` = estimate, 
-             `Margin of Error` = moe) %>%
-      DT::datatable(options = list(pageLength = 10, autoWidth = TRUE))
+    data <- avg_size() %>%
+      filter(geography == "cbsa",
+             tenure == input$tenure,
+             name == input$cbsa)
+    
+    # Apply year filter if needed
+    if (!input$show_all_years) {
+      req(input$year_start, input$year_end)
+      data <- data %>%
+        filter(year >= input$year_start, 
+               year <= input$year_end)
+    }
+    
+    # Calculate min/max points for labeling
+    data %>%
+      mutate(label_point = year == min(year) | year == max(year) | 
+               estimate == max(estimate) | estimate == min(estimate))
+  })
+  
+  filtered_locality <- reactive({
+    req(input$tenure, input$locality)
+    
+    data <- avg_size() %>%
+      filter(geography == "locality",
+             tenure == input$tenure,
+             name == input$locality)
+    
+    # Apply year filter if needed
+    if (!input$show_all_years) {
+      req(input$year_start, input$year_end)
+      data <- data %>%
+        filter(year >= input$year_start, 
+               year <= input$year_end)
+    }
+    
+    # Calculate min/max points for labeling
+    data %>%
+      mutate(label_point = year == min(year) | year == max(year) | 
+               estimate == max(estimate) | estimate == min(estimate))
+  })
+  
+  # Create title text
+  title_text <- reactive({
+    if (input$tabs == "state") {
+      paste(input$tenure, "Average Household Size in Virginia")
+    } else if (input$tabs == "cbsa") {
+      paste(input$tenure, "Average Household Size in", input$cbsa)
+    } else {
+      paste(input$tenure, "Average Household Size in", input$locality)
+    }
+  })
+  
+  # Subtitle text with year range
+  subtitle_text <- reactive({
+    if (input$show_all_years) {
+      "All Available Years"
+    } else {
+      paste(input$year_start, "to", input$year_end)
+    }
+  })
+  
+  # Function to create an interactive plot
+  create_interactive_plot <- function(data) {
+    req(nrow(data) > 0)
+    
+    # Calculate y-axis limits with some padding
+    y_min <- min(data$estimate) * 0.95
+    y_max <- max(data$estimate) * 1.05
+    
+    # Add tooltips to the data
+    plot_data <- data %>%
+      mutate(tooltip = paste0(
+        "Year: ", year, "\n",
+        "Average Size: ", format(estimate, nsmall = 2)
+      ))
+    
+    # Add margin of error to tooltip if it exists in the data
+    if("moe" %in% colnames(plot_data)) {
+      plot_data <- plot_data %>%
+        mutate(tooltip = ifelse(
+          !is.na(moe),
+          paste0(tooltip, "\nMargin of Error: ±", format(moe, nsmall = 2)),
+          tooltip
+        ))
+    }
+    
+    # Create base plot
+    p <- ggplot(plot_data,
+                aes(x = year,
+                    y = estimate)) +
+      # Add interactive line
+      geom_line(linewidth = 1, color = hfv_colors$shadow) +
+      # Add interactive points
+      geom_point_interactive(
+        aes(tooltip = tooltip, data_id = year),
+        size = 3, 
+        color = hfv_colors$shadow
+      ) 
+    
+    # Add trend line if requested
+    if (input$show_trend && nrow(data) >= 4) {
+      p <- p + geom_smooth(method = "loess", 
+                           se = TRUE, 
+                           color = hfv_colors$sky, 
+                           fill = hfv_colors$sky, 
+                           alpha = 0.2)
+    }
+    
+    # Add point labels if requested
+    if (input$show_labels) {
+      p <- p + geom_text(
+        data = filter(plot_data, label_point),
+        aes(label = format(estimate, nsmall = 2)),
+        vjust = -0.8, 
+        hjust = 0.5, 
+        size = 3.5
+      )
+    }
+    
+    # Complete the plot
+    p <- p + 
+      scale_y_continuous(limits = c(y_min, y_max),
+                         labels = scales::number_format(accuracy = 0.01)) +
+      labs(
+        title = title_text(),
+        subtitle = subtitle_text(),
+        x = "Year",
+        y = "Average Household Size",
+        caption = " " # Add empty caption to leave space for logo
+      ) +
+      theme_bw() +
+      theme(
+        plot.title = element_text(size = 14, face = "bold"),
+        plot.subtitle = element_text(size = 12),
+        axis.title = element_text(size = 11),
+        axis.text = element_text(size = 10),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "grey80", fill = NA),
+        legend.position = "none",
+        plot.caption = element_text(hjust = 0.5, margin = margin(t = 20)),
+        plot.margin = margin(5, 5, 15, 5) # Extra bottom margin for logo
+      )
+    
+    # Add logo to the plot
+    logo_path <- "www/hfv_logo.png"
+    p_with_logo <- cowplot::ggdraw(p) +
+      cowplot::draw_image(logo_path, 
+                          x = 0.8, y = -0.05, 
+                          width = 0.15, height = 0.15)
+    
+    # Return interactive plot with logo
+    girafe(
+      ggobj = p_with_logo,
+      width_svg = 7.5,
+      height_svg = 4.5,
+      options = list(
+        opts_hover(css = "fill-opacity:0.8;"),
+        opts_tooltip(
+          opacity = 0.9, 
+          css = "background-color:#011E41;color:white;padding:8px;border-radius:3px;",
+          use_fill = TRUE
+        ),
+        opts_toolbar(hidden = c("lasso_deselect", "lasso_select")),
+        opts_sizing(rescale = TRUE, width = 1)
+      )
+    )
+  }
+  
+  # Render plots
+  output$state_plot <- renderGirafe({
+    create_interactive_plot(filtered_state())
+  })
+  
+  output$cbsa_plot <- renderGirafe({
+    create_interactive_plot(filtered_cbsa())
+  })
+  
+  output$local_plot <- renderGirafe({
+    create_interactive_plot(filtered_locality())
   })
 }
 
-# Run the app
+# Run the application 
 shinyApp(ui = ui, server = server)

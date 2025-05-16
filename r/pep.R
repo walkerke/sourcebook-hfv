@@ -5,11 +5,13 @@ library(janitor)
 library(tigris)
 library(air)
 
-source("config.R")
 
 va <- counties(state = "VA") %>% 
   sf::st_drop_geometry()
 
+lookup <- read_csv("data/local_lookup.csv") |> # Read in lookup csv
+  mutate(fips_full = as.character(fips_full)) |> # Convert numeric GEOID to character in order to complete join
+  select(GEOID = fips_full, name_long, cbsa_title) # Simplify data
 
 ## ---- Population Estimate ---- 
 
@@ -95,10 +97,10 @@ census_clean <- census_raw %>%
 #  Combine total population data.
 
 pop_data <- rbind(pep_2010s_clean, pep_2020s_clean, census_clean) %>% 
-  left_join(va, by = "GEOID")
+  left_join(lookup, by = "GEOID")
 
 
-write_rds(pop_data, "data/pop_data.rds")
+write_rds(pop_data, "data/rds/pop_data.rds")
 
 ## ---- Components of Population Change -----
 
@@ -157,9 +159,9 @@ change_2020s_clean <- change_2020s %>%
   ) 
 
 pep_change <- rbind(change_2010s_clean, change_2020s_clean) %>% 
-  left_join(va, by = "GEOID")
+  left_join(lookup, by = "GEOID")
 
-write_rds(pep_change, "data/pop_change.rds")
+write_rds(pep_change, "data/rds/pop_change.rds")
 
 ## ---- Race and Ethnicity Estimates ----
 
@@ -414,9 +416,10 @@ race_ethnicity_data <- race_ethnicity_raw %>%
     hisp,
     label,
     value
-  )
+  ) %>% 
+  left_join(lookup, by = "GEOID")
 
-write_rds(race_ethnicity_data, "data/race-ethnicity.rds")
+write_rds(race_ethnicity_data, "data/rds/race-ethnicity.rds")
 
 ## ---- Population by Age ----
 
@@ -562,7 +565,7 @@ lookup <- read_csv("data/local_lookup.csv") |> # Read in lookup csv
 age_join <- age |> 
   left_join(lookup, by = 'GEOID')
 
-write_rds(age_join, "data/pop_age.rds")
+write_rds(age_join, "data/rds/pop_age.rds")
 
 
 
