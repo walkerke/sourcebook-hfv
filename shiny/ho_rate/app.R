@@ -70,11 +70,11 @@ server <- function(input, output, session) {
   # Load data in a separate reactive process to avoid blocking UI
   observe({
     # Load counties first (smaller file)
-    va_counties(read_rds("va_co_shape.rds"))
+    va_counties(readRDS("va_co_shape.rds"))
     
     # Then load tract data
     withProgress(message = 'Loading map data...', value = 0, {
-      tract_map_data(read_rds("tract_data_simplified.rds"))
+      tract_map_data(readRDS("tract_data_simplified.rds"))
       incProgress(1)
     })
     
@@ -87,7 +87,7 @@ server <- function(input, output, session) {
 
   # Lazy load trend data only when needed
   trend_data <- reactive({
-    read_rds("trend_data.rds")
+    readRDS("trend_data.rds")
   })
   
   # Debug helper - print unique jurisdiction values in trend_data
