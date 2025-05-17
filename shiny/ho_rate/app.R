@@ -87,7 +87,7 @@ server <- function(input, output, session) {
 
   # Lazy load trend data only when needed
   trend_data <- reactive({
-    read_rds("trend_data.rds"))
+    read_rds("trend_data.rds")
   })
   
   # Debug helper - print unique jurisdiction values in trend_data
