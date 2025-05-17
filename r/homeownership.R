@@ -128,11 +128,12 @@ tract_ho_data <- tract_homeownership %>%
 tract_map_data <- va_tracts_geo %>%
   left_join(
     tract_ho_data %>% 
-      select(GEOID, tract, jurisdiction, ho_rate, All, Homeowner),
+      select(GEOID, year, tract, jurisdiction, ho_rate, All, Homeowner) %>% 
+      filter(year == 2023),
     by = "GEOID"
   ) %>%
   # Add county-level homeownership rates
-  group_by(jurisdiction) %>%
+  group_by(jurisdiction, year) %>%
   mutate(
     jurisdiction_total = sum(All, na.rm = TRUE),
     jurisdiction_homeowners = sum(Homeowner, na.rm = TRUE),
@@ -153,7 +154,8 @@ tract_map_data <- va_tracts_geo %>%
       "<br><b>Homeownership Rate: </b>", round(ho_rate, 1), "%",
       "<br><b>County Homeownership Rate: </b>", round(jurisdiction_ho_rate, 1), "%"
     )
-  ))
+  )) %>% 
+  filter(variable == "B25003_002")
 
 # Get simplified county boundaries
 va_counties <- counties(state = "VA", year = 2021) %>%
@@ -182,5 +184,5 @@ tract_map_data <- readRDS(here("shiny", "ho_rate", "tract_map_data.rds"))
 tract_data_simplified <- tract_map_data |> 
   st_simplify(dTolerance = 0.001)
 
-write_rds(tract_data_simplified, "shiny/ho_rate/_tract_data_simplified.rds")
+write_rds(tract_data_simplified, "shiny/ho_rate/tract_data_simplified.rds")
 
