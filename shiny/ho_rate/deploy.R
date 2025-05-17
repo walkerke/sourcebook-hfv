@@ -1,19 +1,13 @@
 library(rsconnect)
-
 # Create a manifest file for deployment
 rsconnect::writeManifest(
-  appDir = ".",                      # Current directory
+  appDir = "shiny/ho_rate",                      # Current directory
   appFiles = c(                      # Files to include
-    "ho_rate_map_optimized.R",       # Main app file
-    "tract_map_data.rds",            # Data files
+    "app.R",       # Main app file
+    "tract_data_simplified.rds",     # Data files
     "trend_data.rds",
+    "va_co_shape.rds",
     "www/hfv_rgb_logo.png"           # Assets
   ),
-  appPrimaryDoc = "ho_rate_map_optimized.R",  # Main file
-  contentCategory = "application",
-  appMode = "shiny",
-  appTitle = "Virginia Homeownership Explorer"
+  appPrimaryDoc = "app.R"  # Main file
 )
-
-# After creating the manifest, you can deploy with:
-# rsconnect::deployApp(".", account = "your-account", server = "connect.posit.cloud")
