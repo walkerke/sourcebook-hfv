@@ -27,7 +27,7 @@ column_names <- header_rows %>%
 
 cbps_raw <- map_df(years, ~{
 
-  raw <- read_csv(glue("https://www2.census.gov/econ/bps/County/co{.x}a.txt"), skip = 2, 
+  raw <- read_csv(glue::glue("https://www2.census.gov/econ/bps/County/co{.x}a.txt"), skip = 2, 
                     col_names = FALSE) %>%
     select(X1:X18) %>%
     set_names(column_names)
@@ -59,6 +59,13 @@ cbps_data <- cbps_raw %>%
   select(GEOID, year, type:value) %>% 
   mutate(GEOID = str_replace_all(GEOID, "51515", "51019"), # Merge 'Bedford city' values to 'Bedford county'
          GEOID = str_replace_all(GEOID, "51560", "51005")) # Merge 'Clifton Forge city' values to 'Alleghany county'
-  
 
-write_rds(cbps_data, "data/bps.rds" )
+
+lookup <- read_csv("data/local_lookup.csv") |> # Read in lookup csv
+  mutate(fips_full = as.character(fips_full)) |> # Convert numeric GEOID to character in order to complete join
+  select(GEOID = fips_full, name_long, cbsa_title) # Simplify data
+
+cbps_data <- cbps_data %>% 
+  left_join(lookup, by = "GEOID")
+
+write_rds(cbps_data, "data/rds/bps.rds")
