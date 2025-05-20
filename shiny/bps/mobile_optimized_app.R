@@ -12,7 +12,7 @@ library(shinyjs)     # For dynamic UI updates
 library(cowplot)     # For adding logo to plots
 
 # Load data - ONLY load from the specified path, no simulated data
-bps <- read_rds(here::here("bps.rds"))
+bps <- read_rds(file.path(getwd(), "bps.rds"))
 
 # Define HFV color palette
 hfv_colors <- list(
