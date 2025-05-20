@@ -1,0 +1,13 @@
+name: va-homesales-db
+title: va-homesales-db
+username: housingforwardva
+account: housingforwardva
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14784328
+bundleId: 10308343
+url: https://housingforwardva.shinyapps.io/va-homesales-db/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: var_dashboard.R|www/hfv_rgb_logo.png|www/var_logo_new.png

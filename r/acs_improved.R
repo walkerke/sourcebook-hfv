@@ -1,15 +1,17 @@
-################################################################################
-# Census Data Processing Script
+# Census Data Processing Script -------------------------------------------
+# Author: Eric Mai
 # Purpose: Process multiple ACS tables for Virginia housing analysis
-################################################################################
-
+# Date: 205-05-19
+# 
+#
 # Load required libraries
 library(tidyverse)
 library(tidycensus)
 library(fredr)
 library(lubridate)
 
-# Helper functions
+# Helper functions --------------------------------------------------------
+
 # Function to convert estimates to inflation-adjusted dollars
 adjust_for_inflation <- function(data, cpi_data, base_col = "estimate") {
   data %>%
@@ -68,11 +70,10 @@ add_reliability_metrics <- function(data) {
     )
 }
 
-################################################################################
-# SECTION 1: Consumer Price Index Data for Inflation Adjustment
-################################################################################
+# SECTION 1: Consumer Price Index Data for Inflation Adjustment ---------
 
 # Get CPI for All Urban Consumers for income inflation adjustment
+
 cpi <- fredr(
   series_id = "CPIAUCSL"
 ) %>%
@@ -102,9 +103,7 @@ cpi_rent <- fredr(
 current_index <- cpi %>% filter(year == current_acs) %>% pull(index)
 current_rent_index <- cpi_rent %>% filter(year == current_acs) %>% pull(cpi)
 
-################################################################################
-# SECTION 2: Table B25009 - Tenure by Household Size
-################################################################################
+# SECTION 2: Table B25009 - Tenure by Household Size -----------------
 
 # Get variables for Table B25009
 b25009_vars <- load_table_vars("B25009")
@@ -141,11 +140,9 @@ b25009_data <- b25009_raw %>%
 hhsize_join <- b25009_data %>% 
   left_join(load_locality_lookup(), by = 'GEOID')
 
-write_rds(hhsize_join, "data/hh_size.rds")
+write_rds(hhsize_join, "data/rds/b25009.rds")
 
-################################################################################
-# SECTION 3: Table B25010 - Average Household Size by Tenure
-################################################################################
+# SECTION 3: Table B25010 - Average Household Size by Tenure ------------
 
 # Define CBSA codes for Virginia
 cbsa <- c("13720", "13980", "14140", "16820", "19260", "25500", "28700", 
@@ -227,11 +224,9 @@ b25010_data <- b25010_raw %>%
   select(GEOID, name, geography, year, tenure, estimate, moe) %>%
   add_reliability_metrics()
 
-write_rds(b25010_data, "data/avg_hh_size.rds")
+write_rds(b25010_data, "data/rds/b25010.rds")
 
-################################################################################
-# SECTION 4: Table B11012 - Households by Type
-################################################################################
+# SECTION 4: Table B11012 - Households by Type ----------------------------
 
 # Get variables for Table B11012
 b11012_vars <- load_table_vars("B11012")
@@ -283,11 +278,9 @@ b11012_data <- b11012_raw %>%
 hhtype_join <- b11012_data %>% 
   left_join(load_locality_lookup(), by = 'GEOID')
 
-write_rds(hhtype_join, "data/hh_type.rds")
+write_rds(hhtype_join, "data/rds/b11012.rds")
 
-################################################################################
-# SECTION 5: Table B09021 - Living Arrangements of Adults
-################################################################################
+# SECTION 5: Table B09021 - Living Arrangements of Adults -----------------
 
 # Get variables for Table B09021
 b09021_vars <- load_table_vars("B09021")
@@ -347,11 +340,9 @@ b09021_data <- b09021_raw %>%
 lvng_join <- b09021_data %>% 
   left_join(load_locality_lookup(), by = 'GEOID')
 
-write_rds(lvng_join, "data/lvng_arr.rds")
+write_rds(lvng_join, "data/rds/lvng_arr.rds")
 
-################################################################################
-# SECTION 6: Table B19049 - Median Household Income by Age
-################################################################################
+# SECTION 6: Table B19049 - Median Household Income by Age ----------------
 
 # Get variables for Table B19049
 b19049_vars <- load_variables(2021, "acs5") %>%
@@ -421,13 +412,11 @@ locality_adj <- output_b19049_locality %>%
   filter(age != "All")
 
 # Save data
-write_rds(state_adj, "data/b19049_state.rds")
-write_rds(cbsa_adj, "data/b19049_cbsa.rds")
-write_rds(locality_adj, "data/b19049_locality.rds")
+write_rds(state_adj, "data/rds/b19049_state.rds")
+write_rds(cbsa_adj, "data/rds/b19049_cbsa.rds")
+write_rds(locality_adj, "data/rds/b19049_locality.rds")
 
-################################################################################
-# SECTION 7: Table B25118 - Household Income Distribution by Tenure
-################################################################################
+# SECTION 7: Table B25118 - Household Income Distribution by Tenure -------
 
 # Get variables for Table B25118
 b25118_vars <- load_table_vars("B25118")
@@ -468,11 +457,11 @@ b25118_data <- b25118_raw %>%
 b25118_data <- b25118_data %>% 
   left_join(load_locality_lookup(), by = "GEOID")
 
-write_rds(b25118_data, "data/b25118_data.rds")
+write_rds(b25118_data, "data/rds/b25118_data.rds")
 
-################################################################################
-# SECTION 8: Table B25119 - Median Household Income by Tenure
-################################################################################
+
+# SECTION 8: Table B25119 - Median Household Income by Tenure -------------
+
 
 # Get variables for Table B25119
 b25119_vars <- load_table_vars("B25119") %>% 
@@ -541,13 +530,11 @@ med_inc_local <- b25119_local %>%
   select(locality, year, tenure, estimate, moe, adjusted)
 
 # Save data
-write_rds(med_inc_state, "data/b25119_state.rds")
-write_rds(med_inc_cbsa, "data/b25119_cbsa.rds")
-write_rds(med_inc_local, "data/b25119_local.rds")
+write_rds(med_inc_state, "data/rds/b25119_state.rds")
+write_rds(med_inc_cbsa, "data/rds/b25119_cbsa.rds")
+write_rds(med_inc_local, "data/rds/b25119_local.rds")
 
-################################################################################
-# SECTION 9: Table B17001 - Poverty Status by Race and Age
-################################################################################
+# SECTION 9: Table B17001 - Poverty Status by Race and Age ----------------
 
 # Create an object for all tables needed
 b17001 <- paste0("B17001", LETTERS[2:9])
@@ -637,12 +624,10 @@ rate_age <- output_b17001_clean %>%
   mutate(rate = estimate/totalage)
 
 # Save data
-write_rds(rate_race, "data/poverty_race.rds")
-write_rds(rate_age, "data/poverty_age.rds")
+write_rds(rate_race, "data/rds/poverty_race.rds")
+write_rds(rate_age, "data/rds/poverty_age.rds")
 
-################################################################################
-# SECTION 10: Table B25003 - Households by Tenure
-################################################################################
+# SECTION 10: Table B25003 - Households by Tenure -------------------------
 
 # Create objects for all tables needed
 b25003 <- c("B25003", paste0("B25003", LETTERS[2:9]))
@@ -787,13 +772,11 @@ output_b25007_clean <- output_b25007 %>%
   left_join(load_locality_lookup(), by = c("fips" = "GEOID"))
 
 # Save data
-write_rds(output_b25003_wide, "data/b25003_wide.rds")
-write_rds(output_b25003_wide_state, "data/b25003_state.rds")
-write_rds(output_b25007_clean, "data/b25007_clean.rds")
+write_rds(output_b25003_wide, "data/rds/b25003_wide.rds")
+write_rds(output_b25003_wide_state, "data/rds/b25003_state.rds")
+write_rds(output_b25007_clean, "data/rds/b25007_clean.rds")
 
-################################################################################
-# SECTION 11: Table B25063/B25064 - Gross Rent and Median Gross Rent
-################################################################################
+# SECTION 11: Table B25063/B25064 - Gross Rent and Median Gross Rent --------
 
 # Create objects for tables
 b25063 <- "B25063" # Gross Rent
@@ -919,14 +902,12 @@ b25064_state <- output_b25064_state %>%
   mutate(adjusted = adjust_for_rent_inflation(estimate, cpi))
 
 # Save data
-write_rds(b25064_locality, "data/b25064_locality.rds")
-write_rds(b25064_cbsa, "data/b25064_cbsa.rds")
-write_rds(b25064_state, "data/b25064_state.rds")
-write_rds(output_b25063_clean, "data/b25063.rds")
+write_rds(b25064_locality, "data/rds/b25064_locality.rds")
+write_rds(b25064_cbsa, "data/rds/b25064_cbsa.rds")
+write_rds(b25064_state, "data/rds/b25064_state.rds")
+write_rds(output_b25063_clean, "data/rds/b25063.rds")
 
-################################################################################
-# SECTION 12: Rental Vacancy
-################################################################################
+# SECTION 12: Rental Vacancy ----------------------------------------------
 
 # Get variables for Tables B25003 and B25004
 b25003_vars <- load_table_vars("B25003")
@@ -1031,11 +1012,12 @@ output_vacancy <- rental_vacancy %>%
 vacancy_rate <- output_vacancy %>% 
   left_join(load_locality_lookup(), by = c("fips" = "GEOID"))
 
-write_rds(vacancy_rate, "data/renter_vacancy.rds")
+write_rds(vacancy_rate, "data/rds/renter_vacancy.rds")
 
-################################################################################
-# SECTION 13: Table B25106 - ACS Cost Burden
-################################################################################
+
+# SECTION 13: Table B25106 - ACS Cost Burden ------------------------------
+
+
 
 # Get variables for Table B25106
 b25106_vars <- load_table_vars("B25106")
@@ -1071,11 +1053,11 @@ b25106_data <- b25106_raw %>%
   group_by(NAME, GEOID, year, tenure, income, cb) %>% 
   summarise(estimate = sum(estimate), .groups = "drop")
 
-write_rds(b25106_data, "data/b25106_data.rds")
+write_rds(b25106_data, "data/rds/b25106_data.rds")
 
-################################################################################
-# ----- SECTION 14: Table B19013 - Median Household Income by Race ----
-################################################################################
+
+# SECTION 14: Table B19013 - Median Household Income by Race --------------
+
 
 # Create object for tables
 b19013 <- paste0("B19013", LETTERS[2:9])
@@ -1150,13 +1132,13 @@ output_b19013_cbsa <- process_median_income(output_b19013_cbsa)
 output_b19013_state <- process_median_income(output_b19013_state)
 
 # Save data
-write_rds(output_b19013_locality, "data/b19013_locality.rds")
-write_rds(output_b19013_cbsa, "data/b19013_cbsa.rds")
-write_rds(output_b19013_state, "data/b19013_state.rds")
+write_rds(output_b19013_locality, "data/rds/b19013_locality.rds")
+write_rds(output_b19013_cbsa, "data/rds/b19013_cbsa.rds")
+write_rds(output_b19013_state, "data/rds/b19013_state.rds")
 
-################################################################################
-# ---- SECTION 15: Table B25032 - Housing Type by Tenure-----
-################################################################################
+
+# SECTION 15: Table B25032 - Structure Type by Tenure -----------------------
+
 
 # Get variables for Table B25032
 b25032_vars <- load_table_vars("B25032") %>% 
@@ -1213,11 +1195,11 @@ b25032_data <- b25032_prep %>%
   drop_na(type) %>%
   left_join(va_lookup, by = c("GEOID" = "fips_full"))
 
-write_rds(b25032_data, "data/b25032.rds")
+write_rds(b25032_data, "data/rds/b25032.rds")
 
-################################################################################
-# ----- SECTION 16: Table B25127 - Tenure by Year Structure Built by Units in Structure-----
-################################################################################
+
+# SECTION 16: Table B25127 - Tenure by Year Structure Built by Units --------
+
 
 # Get variables for Table B25127
 b25127_vars <- load_table_vars("B25127")
@@ -1244,11 +1226,11 @@ b25127_data <- b25127_raw %>%
   select(NAME, GEOID, year, tenure, yrbuilt, structure, estimate, moe) %>%
   left_join(va_lookup, by = c("GEOID" = "fips_full"))
 
-write_rds(b25127_data, "data/b25127.rds")
+write_rds(b25127_data, "data/rds/b25127.rds")
 
-################################################################################
-# ----- SECTION 17: Table B25042 - Tenure by Bedrooms -----
-################################################################################
+
+# SECTION 17: Table B25042 - Tenure by Bedrooms ---------------------------
+
 
 # Get variables for Table B25042
 b25042_vars <- load_table_vars("B25042")
@@ -1276,11 +1258,10 @@ b25042_data <- b25042_raw %>%
   mutate(NAME = str_remove_all(NAME, ", Virginia")) %>%
   left_join(va_lookup, by = c("GEOID" = "fips_full"))
 
-write_rds(b25042_data, "data/b25042.rds")
+write_rds(b25042_data, "data/rds/b25042.rds")
 
-################################################################################
-# SECTION 18: Table B25014 - Tenure by Occupants Per Room
-################################################################################
+
+# SECTION 18: Table B25014 - Tenure by Occupants Per Room -----------------
 
 # Get variables for Table B25014
 b25014_vars <- load_table_vars("B25014") %>% 
@@ -1333,4 +1314,88 @@ b25014_data <- b25014_prep %>%
   add_reliability_metrics() %>%
   left_join(va_lookup, by = c("GEOID" = "fips_full"))
 
-write_rds(b25014_data, "data/b25014.rds")
+write_rds(b25014_data, "data/rds/b25014.rds")
+
+
+# SECTION 19: Table B19013B-H - Median Household Income by Race -----------
+
+# Create object for tables
+b19013 <- paste0("B19013", LETTERS[2:9])
+
+# Get variables for Table B19013
+b19013_defns <- load_variables(2023, "acs5") %>%
+  filter(str_sub(name, end = 7) %in% b19013) %>%
+  filter(str_detect(name, "PR") == FALSE)
+
+# Function to extract race from concept
+concept_to_race <- function(x) {
+  x %>%
+    str_remove_all("Median Household Income in the Past 12 Months \\(in 2023 Inflation-Adjusted Dollars\\)") %>%
+    str_extract("(?<=\\().*(?=\\))") %>%
+    str_trim()
+}
+
+# Clean B19013 variables
+b19013_cleaned <- b19013_defns %>%
+  mutate(race = concept_to_race(concept)) %>%
+  separate(label, c("estimate", "medhhincome"), sep = "!!") %>%
+  select(variable = name, medhhincome, race) %>%
+  mutate(
+    across(.fns = ~replace_na(.x, "All")),
+    across(.fns = ~str_remove_all(.x, ":")),
+    across(.fns = ~str_remove_all(.x, "Householder")),
+    across(.fns = ~str_remove_all(.x, "Alone"))
+  )
+
+# Function to get B19013 data for different tables and geographies
+get_b19013_data <- function(tables, geography, state = NULL) {
+  map_dfr(tables, function(tb) {
+    map_dfr(years, function(yr) {
+      args <- list(
+        geography = geography,
+        table = tb,
+        year = yr
+      )
+      
+      if (!is.null(state)) {
+        args$state <- state
+      }
+      
+      do.call(get_acs, args) %>%
+        left_join(b19013_cleaned, by = "variable") %>%
+        mutate(year = yr)
+    })
+  })
+}
+
+# Get B19013 data for different geographies
+output_b19013_locality <- get_b19013_data(b19013, "county", "VA") %>%
+  select(variable, year, locality = NAME, fips = GEOID, race, medhhincome, estimate, moe) %>% 
+  mutate(locality = str_remove(locality, ", Virginia"))
+
+
+output_b19013_cbsa <- get_b19013_data(b19013, "metropolitan statistical area/micropolitan statistical area") %>%
+  select(variable, year, CBSA = NAME, fips = GEOID, race, medhhincome, estimate, moe) %>%
+  filter(str_detect(CBSA, "VA"))
+
+output_b19013_state <- get_b19013_data(b19013, "state") %>%
+  select(variable, year, state = NAME, fips = GEOID, race, medhhincome, estimate, moe)
+
+# Function to join with CPI and adjust for inflation
+process_median_income <- function(data) {
+  data %>%
+    left_join(cpi, by = "year") %>%
+    mutate(adjusted = ((current_index/index) * estimate))
+}
+
+# Process data for all geographies
+output_b19013_locality <- process_median_income(output_b19013_locality)
+output_b19013_cbsa <- process_median_income(output_b19013_cbsa)
+output_b19013_state <- process_median_income(output_b19013_state)
+
+# Save data
+write_rds(output_b19013_locality, "data/rds/b19013_locality.rds")
+write_rds(output_b19013_cbsa, "data/rds/b19013_cbsa.rds")
+write_rds(output_b19013_state, "data/rds/b19013_state.rds")
+
+

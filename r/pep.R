@@ -13,7 +13,7 @@ lookup <- read_csv("data/local_lookup.csv") |> # Read in lookup csv
   mutate(fips_full = as.character(fips_full)) |> # Convert numeric GEOID to character in order to complete join
   select(GEOID = fips_full, name_long, cbsa_title) # Simplify data
 
-## ---- Population Estimate ---- 
+# Population Estimate -----------------------------------------------------
 
 # Get data from the 2010s first.
 
@@ -102,7 +102,8 @@ pop_data <- rbind(pep_2010s_clean, pep_2020s_clean, census_clean) %>%
 
 write_rds(pop_data, "data/rds/pop_data.rds")
 
-## ---- Components of Population Change -----
+
+# Components of Population Change -----------------------------------------
 
 change_2010s <- get_estimates(
   geography = "county",
@@ -163,7 +164,10 @@ pep_change <- rbind(change_2010s_clean, change_2020s_clean) %>%
 
 write_rds(pep_change, "data/rds/pop_change.rds")
 
-## ---- Race and Ethnicity Estimates ----
+
+# Race and Ethnicity Estimates --------------------------------------------
+
+
 
 # Download population counts by race and ethnicity from PEP for each Virginia locality from 2010 to 2019
 
@@ -421,7 +425,10 @@ race_ethnicity_data <- race_ethnicity_raw %>%
 
 write_rds(race_ethnicity_data, "data/rds/race-ethnicity.rds")
 
-## ---- Population by Age ----
+
+# Population by Age -------------------------------------------------------
+
+
 
 # Download population counts by age group from PEP for each Virginia locality from 2010 to 2019
 
@@ -443,7 +450,7 @@ age_20s <- get_estimates(
   product = "characteristics",
   breakdown = "AGEGROUP",
   breakdown_labels = TRUE,
-  year = lag_pep,
+  vintage = lag_pep,
   time_series = TRUE
 )
 
