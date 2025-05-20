@@ -36,8 +36,8 @@ hfv_theme <- bs_theme(
   info = hfv_colors$lilac,            # Info color
   warning = hfv_colors$desert,        # Warning color
   danger = hfv_colors$berry,          # Danger color
-  base_font = font_google("Open Sans"),
-  heading_font = font_google("Poppins"),
+  base_font = "Arial, Helvetica, sans-serif",
+  heading_font = "Arial, Helvetica, sans-serif",
   font_scale = 0.8                    # Compact the text more for small window
 )
 
@@ -448,12 +448,12 @@ server <- function(input, output, session) {
         plot.title = element_text(face = "bold"),
         plot.title.position = "plot",
         axis.title = element_blank(),
-        plot.margin = margin(t = 5, r = 5, b = 30, l = 5)  # Increased bottom margin for logo
+        plot.margin = margin(t = 5, r = 5, b = 50, l = 5)  # Increased from b = 30 to b = 50
       )
     
     # Add logo to the plot
     # Find the logo file path
-    logo_path <- file.path(getwd(), "www", "hfv_logo.png")
+    logo_path <- "www/hfv_logo.png"
     
     # Check if logo file exists
     if (file.exists(logo_path)) {
