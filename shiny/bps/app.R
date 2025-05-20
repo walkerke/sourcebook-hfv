@@ -386,7 +386,6 @@ server <- function(input, output, session) {
     metric_label
   })
   
-  # Create plots with interactive tooltips on stacked bars
   create_plot <- function(data, metric_col, title, subtitle) {
     # Map colors to building types
     color_mapping <- c(
@@ -448,34 +447,27 @@ server <- function(input, output, session) {
         plot.title = element_text(face = "bold"),
         plot.title.position = "plot",
         axis.title = element_blank(),
-        plot.margin = margin(t = 5, r = 5, b = 50, l = 5)  # Increased from b = 30 to b = 50
+        plot.margin = margin(t = 5, r = 5, b = 50, l = 5)  # Increased bottom margin for logo
       )
     
-    # Add logo to the plot
-    # Find the logo file path
-    logo_path <- "www/hfv_logo.png"
+    # Use the URL directly for the logo
+    logo_url <- "https://housingforwardva.org/wp-content/uploads/2024/08/HousingForward-VA-Logo-Files-Horizontal-Gradient-RGB.png"
     
-    # Check if logo file exists
-    if (file.exists(logo_path)) {
-      # Add logo to the plot
-      logo_plot <- ggdraw(p) +
-        draw_image(
-          logo_path,
-          x = 0.85,    # Horizontal position (right side)
-          y = 0.05,    # Vertical position (bottom)
-          width = 0.15, 
-          height = 0.15
-        )
-    } else {
-      # If logo file doesn't exist, just use the original plot
-      logo_plot <- p
-    }
+    # Add logo to the plot
+    logo_plot <- ggdraw(p) +
+      draw_image(
+        logo_url,  # Using URL instead of file path
+        x = 0.85,  # Horizontal position (right side)
+        y = 0.05,  # Vertical position (bottom)
+        width = 0.15, 
+        height = 0.15
+      )
     
     # MOBILE OPTIMIZATION #8: Set explicit dimensions and options for ggiraph
     girafe(
       ggobj = logo_plot,
       width_svg = 8,    # Set explicit width
-      height_svg = 5,   # Set explicit height
+      height_svg = 6,   # Increased height (was 5)
       options = list(
         opts_hover(css = "fill-opacity:0.8;"),
         opts_tooltip(
