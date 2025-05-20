@@ -3770,13 +3770,10 @@
   },
   "files": {
     "app.R": {
-      "checksum": "bad9872aabb622b53bbb37daffc4d756"
+      "checksum": "41cd4f749b94c950cca21623d4ae85ad"
     },
     "bps.rds": {
       "checksum": "c707de3807aa343093cc57b0c360c921"
-    },
-    "mobile_optimized_app.R": {
-      "checksum": "6687876ea7326b6e4f7558849e123e03"
     },
     "www/hfv_logo.png": {
       "checksum": "13df674a7d2f54a08b04f72d4e9a22a9"

@@ -11,3 +11,13 @@ rsconnect::writeManifest(
   ),
   appPrimaryDoc = "app.R"  # Main file
 )
+
+rsconnect::writeManifest(
+  appDir = "shiny/bps",                      # Current directory
+  appFiles = c(                      # Files to include
+    "mobile_optimized_app.R",       # Main app file
+    "bps.rds",     # Data files
+    "www/hfv_logo.png"           # Assets
+  ),
+  appPrimaryDoc = "mobile_optimized_app.R"  # Main file
+)
