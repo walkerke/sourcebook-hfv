@@ -12,7 +12,7 @@ library(shinyjs)     # For dynamic UI updates
 library(cowplot)     # For adding logo to plots
 
 # Load data - ONLY load from the specified path, no simulated data
-bps <- readRDS("bps.rds")
+bps <- read_rds("./bps.rds")
 
 # Define HFV color palette
 hfv_colors <- list(
@@ -36,8 +36,8 @@ hfv_theme <- bs_theme(
   info = hfv_colors$lilac,            # Info color
   warning = hfv_colors$desert,        # Warning color
   danger = hfv_colors$berry,          # Danger color
-  base_font = "Arial, Helvetica, sans-serif",
-  heading_font = "Arial, Helvetica, sans-serif",
+  base_font = font_google("Open Sans"),
+  heading_font = font_google("Poppins"),
   font_scale = 0.8                    # Compact the text more for small window
 )
 
@@ -345,6 +345,25 @@ ui <- page_fillable(
 # Define server logic
 server <- function(input, output, session) {
   
+  # Add this at the beginning of your server function:
+  logo_data <- NULL
+  
+  # At the start of your server function, load and encode the logo:
+  observe({
+    # Try to read logo file from www directory
+    tryCatch({
+      # This path works in both local and deployed environments
+      logo_file <- "www/hfv_logo.png"
+      
+      # Read the binary data and convert to base64
+      logo_binary <- readBin(logo_file, "raw", file.info(logo_file)$size)
+      logo_data <<- logo_binary
+    }, error = function(e) {
+      # Log error message
+      message("Could not load logo: ", e$message)
+    })
+  })
+  
   # Update metro area choices
   observe({
     cbsa_choices <- sort(unique(cbsa$cbsa_title))
@@ -386,6 +405,7 @@ server <- function(input, output, session) {
     metric_label
   })
   
+  # Create plots with interactive tooltips on stacked bars
   create_plot <- function(data, metric_col, title, subtitle) {
     # Map colors to building types
     color_mapping <- c(
@@ -447,27 +467,27 @@ server <- function(input, output, session) {
         plot.title = element_text(face = "bold"),
         plot.title.position = "plot",
         axis.title = element_blank(),
-        plot.margin = margin(t = 5, r = 5, b = 50, l = 5)  # Increased bottom margin for logo
+        plot.margin = margin(t = 5, r = 5, b = 30, l = 5)  # Increased bottom margin for logo
       )
     
-    # Use the URL directly for the logo
+    # Add logo directly using external URL
     logo_url <- "https://housingforwardva.org/wp-content/uploads/2024/08/HousingForward-VA-Logo-Files-Horizontal-Gradient-RGB.png"
     
-    # Add logo to the plot
+    # Add logo to the plot using the URL
     logo_plot <- ggdraw(p) +
       draw_image(
-        logo_url,  # Using URL instead of file path
-        x = 0.85,  # Horizontal position (right side)
-        y = 0.05,  # Vertical position (bottom)
+        logo_url,  # Use URL directly
+        x = 0.85,    # Horizontal position (right side)
+        y = 0.05,    # Vertical position (bottom)
         width = 0.15, 
         height = 0.15
       )
     
-    # MOBILE OPTIMIZATION #8: Set explicit dimensions and options for ggiraph
+    # Create girafe object with the logo plot
     girafe(
       ggobj = logo_plot,
       width_svg = 8,    # Set explicit width
-      height_svg = 6,   # Increased height (was 5)
+      height_svg = 5,   # Set explicit height
       options = list(
         opts_hover(css = "fill-opacity:0.8;"),
         opts_tooltip(
@@ -475,7 +495,6 @@ server <- function(input, output, session) {
           css = "background-color:#011E41;color:white;padding:8px;border-radius:3px;",
           use_fill = TRUE
         ),
-        opts_toolbar(hidden = c("saveaspng", "zoom_rect", "select", "lasso_select", "lasso_deselect")),
         opts_sizing(rescale = TRUE)
       )
     )
