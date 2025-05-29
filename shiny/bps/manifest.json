@@ -876,6 +876,36 @@
         "RemoteSha": "1.5.3"
       }
     },
+    "crul": {
+      "Source": "CRAN",
+      "Repository": "https://cloud.r-project.org",
+      "description": {
+        "Package": "crul",
+        "Title": "HTTP Client",
+        "Description": "A simple HTTP client, with tools for making HTTP requests,\n    and mocking HTTP requests. The package is built on R6, and takes\n    inspiration from Ruby's 'faraday' gem (<https://rubygems.org/gems/faraday>).\n    The package name is a play on curl, the widely used command line tool\n    for HTTP, and this package is built on top of the R package 'curl', an\n    interface to 'libcurl' (<https://curl.se/libcurl/>).",
+        "Version": "1.4.2",
+        "License": "MIT + file LICENSE",
+        "Authors@R": "c(\n    person(\"Scott\", \"Chamberlain\", role = c(\"aut\", \"cre\"),\n    email = \"myrmecocystus@gmail.com\",\n    comment = c(ORCID = \"0000-0003-1444-9135\"))\n    )",
+        "URL": "https://docs.ropensci.org/crul/, https://github.com/ropensci/crul,\nhttps://books.ropensci.org/http-testing/",
+        "BugReports": "https://github.com/ropensci/crul/issues",
+        "Encoding": "UTF-8",
+        "Language": "en-US",
+        "Imports": "curl (>= 3.3), R6 (>= 2.2.0), urltools (>= 1.6.0), httpcode\n(>= 0.2.0), jsonlite, mime",
+        "Suggests": "testthat, roxygen2 (>= 7.1.1), fauxpas (>= 0.1.0), webmockr\n(>= 0.1.0), knitr, rmarkdown",
+        "VignetteBuilder": "knitr",
+        "RoxygenNote": "7.3.1",
+        "X-schema.org-applicationCategory": "Web",
+        "X-schema.org-keywords": "http, https, API, web-services, curl, download,\nlibcurl, async, mocking, caching",
+        "X-schema.org-isPartOf": "https://ropensci.org",
+        "NeedsCompilation": "no",
+        "Packaged": "2024-04-09 16:43:06 UTC; sckott",
+        "Author": "Scott Chamberlain [aut, cre] (<https://orcid.org/0000-0003-1444-9135>)",
+        "Maintainer": "Scott Chamberlain <myrmecocystus@gmail.com>",
+        "Repository": "CRAN",
+        "Date/Publication": "2024-04-09 17:10:02 UTC",
+        "Built": "R 4.4.0; ; 2024-04-09 18:00:16 UTC; unix"
+      }
+    },
     "curl": {
       "Source": "CRAN",
       "Repository": "https://cloud.r-project.org",
@@ -1257,6 +1287,54 @@
         "RemoteSha": "1.2.0"
       }
     },
+    "fontBitstreamVera": {
+      "Source": "CRAN",
+      "Repository": "https://cloud.r-project.org",
+      "description": {
+        "Package": "fontBitstreamVera",
+        "Title": "Fonts with 'Bitstream Vera Fonts' License",
+        "Version": "0.1.1",
+        "Authors@R": "c(\n    person(\"Lionel\", \"Henry\", , \"lionel.hry@gmail.com\", c(\"cre\", \"aut\")),\n    person(\"Bitstream\", role = \"cph\"))",
+        "Description": "Provides fonts licensed under the 'Bitstream Vera Fonts'\n    license for the 'fontquiver' package.",
+        "Depends": "R (>= 3.0.0)",
+        "License": "file LICENCE",
+        "Encoding": "UTF-8",
+        "LazyData": "true",
+        "RoxygenNote": "5.0.1",
+        "NeedsCompilation": "no",
+        "Packaged": "2017-01-31 20:03:43 UTC; lionel",
+        "Author": "Lionel Henry [cre, aut],\n  Bitstream [cph]",
+        "Maintainer": "Lionel Henry <lionel.hry@gmail.com>",
+        "License_is_FOSS": "yes",
+        "Repository": "CRAN",
+        "Date/Publication": "2017-02-01 00:53:34",
+        "Built": "R 4.4.0; ; 2024-04-05 15:18:39 UTC; unix"
+      }
+    },
+    "fontLiberation": {
+      "Source": "CRAN",
+      "Repository": "https://cloud.r-project.org",
+      "description": {
+        "Package": "fontLiberation",
+        "Title": "Liberation Fonts",
+        "Version": "0.1.0",
+        "Authors@R": "c(\n    person(\"Lionel\", \"Henry\", , \"lionel@rstudio.com\", \"cre\"),\n    person(\"Pravin Satpute\", role = \"aut\"),\n    person(\"Steve Matteson\", role = \"aut\"),\n    person(\"Red Hat, Inc\", role = \"cph\"),\n    person(\"Google Corporation\", role = \"cph\"))",
+        "Description": "A placeholder for the Liberation fontset intended for the\n    `fontquiver` package. This fontset covers the 12 combinations of\n    families (sans, serif, mono) and faces (plain, bold, italic, bold\n    italic) supported in R graphics devices.",
+        "Depends": "R (>= 3.0)",
+        "License": "file LICENSE",
+        "Encoding": "UTF-8",
+        "LazyData": "true",
+        "RoxygenNote": "5.0.1",
+        "NeedsCompilation": "no",
+        "Packaged": "2016-10-14 14:21:59 UTC; lionel",
+        "Author": "Lionel Henry [cre],\n  Pravin Satpute [aut],\n  Steve Matteson [aut],\n  Red Hat, Inc [cph],\n  Google Corporation [cph]",
+        "Maintainer": "Lionel Henry <lionel@rstudio.com>",
+        "Repository": "CRAN",
+        "Date/Publication": "2016-10-15 11:24:18",
+        "License_is_FOSS": "yes",
+        "Built": "R 4.4.0; ; 2024-04-05 15:18:51 UTC; unix"
+      }
+    },
     "fontawesome": {
       "Source": "CRAN",
       "Repository": "https://cloud.r-project.org",
@@ -1290,6 +1368,32 @@
         "RemoteRepos": "https://cloud.r-project.org",
         "RemotePkgPlatform": "aarch64-apple-darwin20",
         "RemoteSha": "0.5.3"
+      }
+    },
+    "fontquiver": {
+      "Source": "CRAN",
+      "Repository": "https://cloud.r-project.org",
+      "description": {
+        "Package": "fontquiver",
+        "Title": "Set of Installed Fonts",
+        "Version": "0.2.1",
+        "Authors@R": "c(\n    person(\"Lionel\", \"Henry\", , \"lionel@rstudio.com\", c(\"cre\", \"aut\")),\n    person(\"RStudio\", role = \"cph\"),\n    person(\"George Douros\", role = \"cph\", comment = \"Symbola font\"))",
+        "Description": "Provides a set of fonts with permissive licences. This is\n    useful when you want to avoid system fonts to make sure your\n    outputs are reproducible.",
+        "Depends": "R (>= 3.0.0)",
+        "Imports": "fontBitstreamVera (>= 0.1.0), fontLiberation (>= 0.1.0)",
+        "Suggests": "testthat, htmltools",
+        "License": "GPL-3 | file LICENSE",
+        "Encoding": "UTF-8",
+        "LazyData": "true",
+        "RoxygenNote": "5.0.1",
+        "Collate": "'font-getters.R' 'fontset.R' 'fontset-bitstream-vera.R'\n'fontset-dejavu.R' 'fontset-liberation.R' 'fontset-symbola.R'\n'html-dependency.R' 'utils.R'",
+        "NeedsCompilation": "no",
+        "Packaged": "2017-01-31 20:11:24 UTC; lionel",
+        "Author": "Lionel Henry [cre, aut],\n  RStudio [cph],\n  George Douros [cph] (Symbola font)",
+        "Maintainer": "Lionel Henry <lionel@rstudio.com>",
+        "Repository": "CRAN",
+        "Date/Publication": "2017-02-01 00:52:56",
+        "Built": "R 4.4.0; ; 2024-04-05 22:39:38 UTC; unix"
       }
     },
     "forcats": {
@@ -1392,6 +1496,35 @@
         "Built": "R 4.4.0; ; 2024-04-06 09:14:32 UTC; unix"
       }
     },
+    "gdtools": {
+      "Source": "CRAN",
+      "Repository": "https://cloud.r-project.org",
+      "description": {
+        "Package": "gdtools",
+        "Title": "Utilities for Graphical Rendering and Fonts Management",
+        "Version": "0.4.2",
+        "Authors@R": "c(\n    person(\"David\", \"Gohel\", , \"david.gohel@ardata.fr\", role = c(\"aut\", \"cre\")),\n    person(\"Hadley\", \"Wickham\", , \"hadley@rstudio.com\", role = \"aut\"),\n    person(\"Lionel\", \"Henry\", , \"lionel@rstudio.com\", role = \"aut\"),\n    person(\"Jeroen\", \"Ooms\", , \"jeroen@berkeley.edu\", role = \"aut\",\n           comment = c(ORCID = \"0000-0002-4035-0289\")),\n    person(\"Yixuan\", \"Qiu\", role = \"ctb\"),\n    person(\"R Core Team\", role = \"cph\",\n           comment = \"Cairo code from X11 device\"),\n    person(\"ArData\", role = \"cph\"),\n    person(\"RStudio\", role = \"cph\")\n  )",
+        "Description": "Tools are provided to compute metrics of formatted strings\n    and to check the availability of a font.  Another set of functions is\n    provided to support the collection of fonts from 'Google Fonts' in a\n    cache. Their use is simple within 'R Markdown' documents and 'shiny'\n    applications but also with graphic productions generated with the\n    'ggiraph', 'ragg' and 'svglite' packages or with tabular productions\n    from the 'flextable' package.",
+        "License": "GPL-3 | file LICENSE",
+        "URL": "https://davidgohel.github.io/gdtools/",
+        "BugReports": "https://github.com/davidgohel/gdtools/issues",
+        "Depends": "R (>= 4.0.0)",
+        "Imports": "fontquiver (>= 0.2.0), htmltools, Rcpp (>= 0.12.12),\nsystemfonts (>= 1.1.0), tools",
+        "Suggests": "curl, gfonts, methods, testthat",
+        "LinkingTo": "Rcpp",
+        "Encoding": "UTF-8",
+        "RoxygenNote": "7.3.2",
+        "SystemRequirements": "cairo, freetype2, fontconfig",
+        "NeedsCompilation": "yes",
+        "Packaged": "2025-03-21 15:59:32 UTC; davidgohel",
+        "Author": "David Gohel [aut, cre],\n  Hadley Wickham [aut],\n  Lionel Henry [aut],\n  Jeroen Ooms [aut] (<https://orcid.org/0000-0002-4035-0289>),\n  Yixuan Qiu [ctb],\n  R Core Team [cph] (Cairo code from X11 device),\n  ArData [cph],\n  RStudio [cph]",
+        "Maintainer": "David Gohel <david.gohel@ardata.fr>",
+        "Repository": "CRAN",
+        "Date/Publication": "2025-03-27 06:30:02 UTC",
+        "Built": "R 4.4.1; aarch64-apple-darwin20; 2025-03-27 07:21:48 UTC; unix",
+        "Archs": "gdtools.so.dSYM"
+      }
+    },
     "generics": {
       "Source": "CRAN",
       "Repository": "https://cloud.r-project.org",
@@ -1424,6 +1557,34 @@
         "RemoteRepos": "https://cloud.r-project.org",
         "RemotePkgPlatform": "aarch64-apple-darwin20",
         "RemoteSha": "0.1.4"
+      }
+    },
+    "gfonts": {
+      "Source": "CRAN",
+      "Repository": "https://cloud.r-project.org",
+      "description": {
+        "Package": "gfonts",
+        "Title": "Offline 'Google' Fonts for 'Markdown' and 'Shiny'",
+        "Version": "0.2.0",
+        "Authors@R": "c(\n  person(\"Victor\", \"Perrier\", email = \"victor.perrier@dreamrs.fr\", role = c(\"aut\", \"cre\")),\n  person(\"Fanny\", \"Meyer\", role = \"aut\"),\n  person(\"Mario\", \"Ranftl\", role = c(\"ctb\", \"cph\"), comment = \"google-webfonts-helper\"))",
+        "Description": "Download 'Google' fonts and generate 'CSS' to use in 'rmarkdown' documents and \n  'shiny' applications. Some popular fonts are included and ready to use.",
+        "URL": "https://dreamrs.github.io/gfonts/,\nhttps://github.com/dreamRs/gfonts",
+        "BugReports": "https://github.com/dreamRs/gfonts/issues",
+        "License": "GPL-3",
+        "Encoding": "UTF-8",
+        "LazyData": "true",
+        "Depends": "R (>= 2.10)",
+        "Imports": "utils, htmltools, shiny, crul, jsonlite, glue, crayon",
+        "RoxygenNote": "7.2.2",
+        "Suggests": "knitr, rmarkdown, testthat (>= 2.1.0), vcr, covr",
+        "VignetteBuilder": "knitr",
+        "NeedsCompilation": "no",
+        "Packaged": "2023-01-08 18:26:46 UTC; victor",
+        "Author": "Victor Perrier [aut, cre],\n  Fanny Meyer [aut],\n  Mario Ranftl [ctb, cph] (google-webfonts-helper)",
+        "Maintainer": "Victor Perrier <victor.perrier@dreamrs.fr>",
+        "Repository": "CRAN",
+        "Date/Publication": "2023-01-08 18:50:02 UTC",
+        "Built": "R 4.4.0; ; 2024-04-06 09:16:17 UTC; unix"
       }
     },
     "ggiraph": {
@@ -1818,6 +1979,31 @@
         "RemoteRepos": "https://cloud.r-project.org",
         "RemotePkgPlatform": "aarch64-apple-darwin20",
         "RemoteSha": "1.6.4"
+      }
+    },
+    "httpcode": {
+      "Source": "CRAN",
+      "Repository": "https://cloud.r-project.org",
+      "description": {
+        "Package": "httpcode",
+        "Title": "'HTTP' Status Code Helper",
+        "Description": "Find and explain the meaning of 'HTTP' status codes.\n    Functions included for searching for codes by full or partial number,\n    by message, and get appropriate dog and cat images for many\n    status codes.",
+        "Version": "0.3.0",
+        "Authors@R": "person(\"Scott\", \"Chamberlain\", role = c(\"aut\",\"cre\"),\n    email = \"myrmecocystus@gmail.com\", \n    comment = c(ORCID = \"0000-0003-1444-9135\"))",
+        "License": "MIT + file LICENSE",
+        "URL": "https://github.com/sckott/httpcode",
+        "BugReports": "https://github.com/sckott/httpcode/issues",
+        "Encoding": "UTF-8",
+        "Language": "en-US",
+        "Suggests": "testthat",
+        "RoxygenNote": "7.1.0",
+        "NeedsCompilation": "no",
+        "Packaged": "2020-04-10 03:18:28 UTC; sckott",
+        "Author": "Scott Chamberlain [aut, cre] (<https://orcid.org/0000-0003-1444-9135>)",
+        "Maintainer": "Scott Chamberlain <myrmecocystus@gmail.com>",
+        "Repository": "CRAN",
+        "Date/Publication": "2020-04-10 06:20:02 UTC",
+        "Built": "R 4.4.0; ; 2024-04-05 15:18:46 UTC; unix"
       }
     },
     "httpuv": {
@@ -3883,6 +4069,35 @@
         "RemoteSha": "0.57"
       }
     },
+    "triebeard": {
+      "Source": "CRAN",
+      "Repository": "https://cloud.r-project.org",
+      "description": {
+        "Package": "triebeard",
+        "Type": "Package",
+        "Title": "'Radix' Trees in 'Rcpp'",
+        "Version": "0.4.1",
+        "Author": "Os Keyes [aut, cre], Drew Schmidt [aut], Yuuki Takano [cph]",
+        "Maintainer": "Os Keyes <ironholds@gmail.com>",
+        "Description": "'Radix trees', or 'tries', are key-value data structures optimised for efficient lookups, similar in purpose\n             to hash tables. 'triebeard' provides an implementation of 'radix trees' for use in R programming and in\n             developing packages with 'Rcpp'.",
+        "License": "MIT + file LICENSE",
+        "LinkingTo": "Rcpp",
+        "Encoding": "UTF-8",
+        "Imports": "Rcpp",
+        "RoxygenNote": "7.1.2",
+        "Suggests": "knitr, rmarkdown, testthat",
+        "VignetteBuilder": "knitr",
+        "URL": "https://github.com/Ironholds/triebeard/",
+        "BugReports": "https://github.com/Ironholds/triebeard/issues",
+        "Date": "2023-03-04",
+        "NeedsCompilation": "yes",
+        "Packaged": "2023-03-04 21:40:31 UTC; ironholds",
+        "Repository": "CRAN",
+        "Date/Publication": "2023-03-04 23:30:07 UTC",
+        "Built": "R 4.4.0; aarch64-apple-darwin20; 2024-04-05 15:16:19 UTC; unix",
+        "Archs": "triebeard.so.dSYM"
+      }
+    },
     "tzdb": {
       "Source": "CRAN",
       "Repository": "https://cloud.r-project.org",
@@ -3954,6 +4169,37 @@
         "RemoteRepos": "https://cloud.r-project.org",
         "RemotePkgPlatform": "aarch64-apple-darwin20",
         "RemoteSha": "0.8-7"
+      }
+    },
+    "urltools": {
+      "Source": "CRAN",
+      "Repository": "https://cloud.r-project.org",
+      "description": {
+        "Package": "urltools",
+        "Type": "Package",
+        "Title": "Vectorised Tools for URL Handling and Parsing",
+        "Version": "1.7.3",
+        "Date": "2019-04-14",
+        "Author": "Os Keyes [aut, cre], Jay Jacobs [aut, cre], Drew Schmidt [aut],\n    Mark Greenaway [ctb], Bob Rudis [ctb], Alex Pinto [ctb], Maryam Khezrzadeh [ctb], Peter Meilstrup [ctb],\n    Adam M. Costello [cph], Jeff Bezanson [cph], Peter Meilstrup [ctb], Xueyuan Jiang [ctb]",
+        "Maintainer": "Os Keyes <ironholds@gmail.com>",
+        "Description": "A toolkit for all URL-handling needs, including encoding and decoding,\n    parsing, parameter extraction and modification. All functions are\n    designed to be both fast and entirely vectorised. It is intended to be\n    useful for people dealing with web-related datasets, such as server-side\n    logs, although may be useful for other situations involving large sets of\n    URLs.",
+        "License": "MIT + file LICENSE",
+        "LazyData": "TRUE",
+        "LinkingTo": "Rcpp",
+        "Imports": "Rcpp, methods, triebeard",
+        "Suggests": "testthat, knitr",
+        "URL": "https://github.com/Ironholds/urltools/",
+        "BugReports": "https://github.com/Ironholds/urltools/issues",
+        "VignetteBuilder": "knitr",
+        "RoxygenNote": "6.1.1",
+        "Encoding": "UTF-8",
+        "Depends": "R (>= 2.10)",
+        "NeedsCompilation": "yes",
+        "Packaged": "2019-04-14 22:25:08 UTC; ironholds",
+        "Repository": "CRAN",
+        "Date/Publication": "2019-04-14 23:02:47 UTC",
+        "Built": "R 4.4.0; aarch64-apple-darwin20; 2024-04-05 22:38:07 UTC; unix",
+        "Archs": "urltools.so.dSYM"
       }
     },
     "utf8": {
@@ -4333,7 +4579,7 @@
       "checksum": "2103482d606fc966a1d35916bb542750"
     },
     "app.R": {
-      "checksum": "a8072009ebb530813226d65668f3404b"
+      "checksum": "9caf3c283024de663143efc7583566e2"
     },
     "bps.rds": {
       "checksum": "c707de3807aa343093cc57b0c360c921"

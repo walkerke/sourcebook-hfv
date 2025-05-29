@@ -11,6 +11,12 @@ library(png) # For reading PNG files
 library(shinyjs) # For dynamic UI updates
 library(cowplot) # For adding logo to plots
 library(magick)
+library(gdtools) # For register_gfont
+library(gfonts)
+
+# Register Google Fonts for use in ggiraph
+register_gfont("Open Sans")
+register_gfont("Poppins")
 
 # Load data - ONLY load from the specified path, no simulated data
 bps <- read_rds("./bps.rds")
@@ -241,6 +247,9 @@ ui <- page_fillable(
     ))
   ),
 
+  # Add Google Font dependencies to HTML
+  addGFontHtmlDependency(family = c("Open Sans", "Poppins")),
+  
   # Main container with responsive padding
   div(
     class = "hfv-container",
@@ -513,17 +522,12 @@ server <- function(input, output, session) {
         caption = " ", # Empty caption to leave space for logo
         fill = "Building Type"
       ) +
-      theme_minimal(base_family = "Arial") +
+      theme_minimal(base_family = "Open Sans") +
       theme(
         legend.position = "bottom",
         panel.grid.minor = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1, family = "Arial"),
-        axis.text.y = element_text(family = "Arial"),
-        plot.title = element_text(face = "bold", family = "Arial"),
-        plot.subtitle = element_text(family = "Arial"),
-        plot.caption = element_text(family = "Arial"),
-        legend.title = element_text(family = "Arial"),
-        legend.text = element_text(family = "Arial"),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(face = "bold", family = "Poppins"),
         plot.title.position = "plot",
         axis.title = element_blank(),
         plot.margin = margin(t = 5, r = 5, b = 30, l = 5) # Increased bottom margin for logo
